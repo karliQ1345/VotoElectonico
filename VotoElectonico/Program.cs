@@ -1,4 +1,7 @@
 
+using Microsoft.EntityFrameworkCore;
+using VotoElectonico.Data;
+
 namespace VotoElectonico
 {
     public class Program
@@ -6,7 +9,8 @@ namespace VotoElectonico
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             // Add services to the container.
 
             builder.Services.AddControllers();

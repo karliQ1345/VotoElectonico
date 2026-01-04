@@ -1,0 +1,6 @@
+@VotoElectonico_HostAddress = http://localhost:5058
+
+GET {{VotoElectonico_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

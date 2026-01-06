@@ -8,7 +8,7 @@ namespace VotoElectonico.Models
         public int Id { get; set; }
 
         // Identificador ÚNICO. 
-        // El sistema valida: Si empieza con "A" -> Admin. Si no -> Votante/Candidato.
+       
         [Required]
         [MaxLength(20)]
         public string Cedula { get; set; }

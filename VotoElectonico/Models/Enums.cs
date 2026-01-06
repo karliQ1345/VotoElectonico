@@ -2,14 +2,20 @@
 {
     public enum RolUsuario
     {
-        Administrador = 0, // Login: Cédula con 'A' + Clave
-        Votante = 1        // Login: Cédula normal (sin clave obligatoria)
+        // Vota + Gestiona Procesos + Ve TODOS los reportes
+        Administrador = 0,
+
+        // Solo Vota + Ve reportes genéricos
+        Votante = 1,
+
+        // Vota + Ve reportes DETALLADOS + Aparece en papeleta
+        Candidato = 2
     }
 
     public enum TipoEleccion
     {
-        Presidencial = 0, // Eliges 1 binomio
-        Asambleistas = 1  // Eliges lista (Plancha) o candidatos (Entre listas)
+        Presidencial = 0,
+        Asambleistas = 1
     }
 
     public enum Genero

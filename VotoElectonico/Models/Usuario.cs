@@ -7,44 +7,39 @@ namespace VotoElectonico.Models
         [Key]
         public int Id { get; set; }
 
-        // La Cédula es la clave del Login. 
-        // Admin: "A100200..." | Votante: "100200..."
+        // Identificador ÚNICO. 
+        // El sistema valida: Si empieza con "A" -> Admin. Si no -> Votante/Candidato.
         [Required]
         [MaxLength(20)]
         public string Cedula { get; set; }
 
-        // Solo el Admin tiene clave hash. El votante puede tener esto null.
-        public string? Clave { get; set; }
+        // NOTA: Eliminamos Clave y OTP. La seguridad es 100% Correo + RAM.
 
         [Required]
         public RolUsuario Rol { get; set; }
 
-        // --- SEGURIDAD 2FA (DOBLE FACTOR) ---
         [Required]
         [EmailAddress]
-        public string CorreoElectronico { get; set; } // Para enviar el código
+        public string CorreoElectronico { get; set; } // Vital para el Login
 
-        public string? CodigoOTP { get; set; } // El código temporal (ej: 123456)
-        public DateTime? FechaExpiracionOTP { get; set; } // Validez del código
-
-        // --- DATOS DEMOGRÁFICOS (Registro por Excel) ---
-        // Estos son los datos de la persona.
+        // --- DATOS DEMOGRÁFICOS ---
         [Required]
         public string NombresCompletos { get; set; }
-
         [Required]
         public Genero Genero { get; set; }
-
         [Required]
-        public string Provincia { get; set; } // Ej: "Imbabura"
-
+        public string Provincia { get; set; }
         [Required]
-        public string Canton { get; set; }    // Ej: "Ibarra"
-
+        public string Canton { get; set; }
         [Required]
         public string Parroquia { get; set; }
 
-        // RELACIÓN DE AUDITORÍA: Solo sabemos SI votó, no POR QUIÉN.
-        public ICollection<HistorialVotacion> HistorialDeVotaciones { get; set; }
+        // --- RELACIONES ---
+
+        // 1. Si es Candidato, aquí están sus datos de campaña (1 a 0..1)
+        public virtual Candidato? InfoCandidatura { get; set; }
+
+        // 2. Si ya votó, aquí se guarda el registro (para Admin, Candidato y Votante)
+        public virtual ICollection<HistorialVotacion> HistorialDeVotaciones { get; set; }
     }
 }

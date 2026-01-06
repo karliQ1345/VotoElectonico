@@ -8,19 +8,21 @@ namespace VotoElectonico.Models
         public int Id { get; set; }
 
         [Required]
-        public string Titulo { get; set; } // Ej: "Elecciones Seccionales 2026"
+        public string Titulo { get; set; }
 
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
 
-        public bool Activo { get; set; } // Admin puede pausar/cerrar el proceso
+        public bool Activo { get; set; }
 
         [Required]
         public TipoEleccion Tipo { get; set; }
 
         // Relaciones
-        public ICollection<PartidoPolitico> PartidosInscritos { get; set; }
-        // Aquí están los votos anónimos de este proceso
-        public ICollection<Voto> UrnaDeVotos { get; set; }
+        public virtual ICollection<PartidoPolitico> PartidosInscritos { get; set; }
+        public virtual ICollection<Voto> UrnaDeVotos { get; set; }
+
+        // Relación para saber quiénes ya sufragaron en este proceso
+        public virtual ICollection<HistorialVotacion> HistorialLog { get; set; }
     }
 }

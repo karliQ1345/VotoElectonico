@@ -10,18 +10,17 @@ namespace VotoElectonico.Models
 
         public int VotoId { get; set; }
         [ForeignKey("VotoId")]
-        public Voto Voto { get; set; }
+        public virtual Voto Voto { get; set; }
 
-        // CASO 1: VOTO EN PLANCHA
-        // Si tiene valor, el voto cuenta para toda la lista.
+        // Opción A: Voto por Partido (Plancha)
         public int? PartidoPoliticoId { get; set; }
         [ForeignKey("PartidoPoliticoId")]
-        public PartidoPolitico? Partido { get; set; }
+        public virtual PartidoPolitico? Partido { get; set; }
 
-        // CASO 2: VOTO NOMINAL (Por persona)
-        // Si tiene valor, el voto es para este candidato específico.
+        // Opción B: Voto por Candidato (Nominal)
+        // NOTA: Aquí referenciamos a la tabla Candidato, no a Usuario.
         public int? CandidatoId { get; set; }
         [ForeignKey("CandidatoId")]
-        public Candidato? Candidato { get; set; }
+        public virtual Candidato? Candidato { get; set; }
     }
 }

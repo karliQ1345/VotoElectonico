@@ -10,25 +10,19 @@ namespace VotoElectonico.Models
 
         public int ProcesoElectoralId { get; set; }
         [ForeignKey("ProcesoElectoralId")]
-        public ProcesoElectoral Proceso { get; set; }
+        public virtual ProcesoElectoral Proceso { get; set; }
 
-        public DateTime FechaIngreso { get; set; } = DateTime.Now;
+        public DateTime FechaIngreso { get; set; } = DateTime.UtcNow;
 
-        // --- ENCRIPTACIÓN DE INTEGRIDAD ---
-        // Hash SHA256 generado por el Backend para validar que el voto no fue manipulado.
         [Required]
-        public string HashSeguridad { get; set; }
+        public string HashSeguridad { get; set; } // SHA256
 
-        // --- COPIA DEMOGRÁFICA ANÓNIMA ---
-        // Estos datos se llenan copiando del Usuario al momento de votar.
-        // Sirven para el reporte: "Mujeres de Ibarra votaron por X"
-        // NO guardamos nombre ni cédula aquí.
+        // COPIA DEMOGRÁFICA (Snapshot del momento del voto)
         public Genero GeneroVotante { get; set; }
         public string ProvinciaVotante { get; set; }
         public string CantonVotante { get; set; }
         public string ParroquiaVotante { get; set; }
 
-        // Contenido del voto
-        public ICollection<DetalleVoto> Detalles { get; set; }
+        public virtual ICollection<DetalleVoto> Detalles { get; set; }
     }
 }

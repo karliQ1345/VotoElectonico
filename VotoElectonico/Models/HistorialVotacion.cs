@@ -8,19 +8,15 @@ namespace VotoElectonico.Models
         [Key]
         public int Id { get; set; }
 
-        // SABEMOS QUIÉN (Usuario)
-        public int UsuarioId { get; set; }
+        public int UsuarioId { get; set; } // ¿Quién votó? (Admin, Candidato o Votante)
         [ForeignKey("UsuarioId")]
-        public Usuario Usuario { get; set; }
+        public virtual Usuario Usuario { get; set; }
 
-        // SABEMOS DÓNDE (Proceso)
         public int ProcesoElectoralId { get; set; }
         [ForeignKey("ProcesoElectoralId")]
-        public ProcesoElectoral Proceso { get; set; }
+        public virtual ProcesoElectoral Proceso { get; set; }
 
-        public DateTime FechaSufragio { get; set; } = DateTime.Now;
-
-        // Opcional: Código único para que el usuario verifique su certificado
-        public string CodigoCertificado { get; set; }
+        public DateTime FechaSufragio { get; set; } = DateTime.UtcNow;
+        public string CodigoCertificado { get; set; } // UUID único
     }
 }

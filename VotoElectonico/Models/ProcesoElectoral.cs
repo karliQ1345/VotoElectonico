@@ -8,19 +8,19 @@ namespace VotoElectonico.Models
         public int Id { get; set; }
 
         [Required]
-        public string NombreProceso { get; set; } = string.Empty;
+        public string Titulo { get; set; } // Ej: "Elecciones Seccionales 2026"
 
-        public string Descripcion { get; set; } = string.Empty;
-
-        [Required]
         public DateTime FechaInicio { get; set; }
-
-        [Required]
         public DateTime FechaFin { get; set; }
 
-        public bool Estado { get; set; } = true; // Por defecto activo
+        public bool Activo { get; set; } // Admin puede pausar/cerrar el proceso
 
-        // Relación: Un proceso tiene muchos candidatos
-        public List<Candidato> Candidatos { get; set; } = null!;
+        [Required]
+        public TipoEleccion Tipo { get; set; }
+
+        // Relaciones
+        public ICollection<PartidoPolitico> PartidosInscritos { get; set; }
+        // Aquí están los votos anónimos de este proceso
+        public ICollection<Voto> UrnaDeVotos { get; set; }
     }
 }

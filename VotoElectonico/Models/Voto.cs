@@ -8,18 +8,27 @@ namespace VotoElectonico.Models
         [Key]
         public int Id { get; set; }
 
-        // OJO: Aquí NO ponemos UsuarioId. Así se garantiza el anonimato.
-
-        // 1. ¿Para qué candidato es el voto?
-        [Required]
-        public int CandidatoId { get; set; }
-        [ForeignKey("CandidatoId")]
-        public Candidato Candidato { get; set; } = null!;
-
-        // 2. ¿A qué urna pertenece? (El proceso)
-        [Required]
         public int ProcesoElectoralId { get; set; }
         [ForeignKey("ProcesoElectoralId")]
-        public ProcesoElectoral ProcesoElectoral { get; set; } = null!;
+        public ProcesoElectoral Proceso { get; set; }
+
+        public DateTime FechaIngreso { get; set; } = DateTime.Now;
+
+        // --- ENCRIPTACIÓN DE INTEGRIDAD ---
+        // Hash SHA256 generado por el Backend para validar que el voto no fue manipulado.
+        [Required]
+        public string HashSeguridad { get; set; }
+
+        // --- COPIA DEMOGRÁFICA ANÓNIMA ---
+        // Estos datos se llenan copiando del Usuario al momento de votar.
+        // Sirven para el reporte: "Mujeres de Ibarra votaron por X"
+        // NO guardamos nombre ni cédula aquí.
+        public Genero GeneroVotante { get; set; }
+        public string ProvinciaVotante { get; set; }
+        public string CantonVotante { get; set; }
+        public string ParroquiaVotante { get; set; }
+
+        // Contenido del voto
+        public ICollection<DetalleVoto> Detalles { get; set; }
     }
 }

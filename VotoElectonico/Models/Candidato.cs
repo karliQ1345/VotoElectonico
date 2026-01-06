@@ -9,20 +9,12 @@ namespace VotoElectonico.Models
         public int Id { get; set; }
 
         [Required]
-        public string NombreCandidato { get; set; } = string.Empty;
+        public string Nombres { get; set; }
+        public string FotoUrl { get; set; }
+        public int? OrdenEnLista { get; set; } // 1, 2, 3... (Importante para Asambleístas)
 
-        [Required]
-        public string PartidoPolitico { get; set; } = string.Empty;
-
-
-        public string FotoUrl { get; set; } = string.Empty;
-        // Ruta de la imagen
-
-        // --- Relación con Proceso Electoral ---
-        [Required]
-        public int ProcesoElectoralId { get; set; }
-
-        [ForeignKey("ProcesoElectoralId")]
-        public ProcesoElectoral ProcesoElectoral { get; set; } = null!;
+        public int PartidoPoliticoId { get; set; }
+        [ForeignKey("PartidoPoliticoId")]
+        public PartidoPolitico Partido { get; set; }
     }
 }

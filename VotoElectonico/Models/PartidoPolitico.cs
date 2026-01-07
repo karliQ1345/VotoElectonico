@@ -9,14 +9,18 @@ namespace VotoElectonico.Models
         public int Id { get; set; }
 
         [Required]
-        public string NombreLista { get; set; }
+        public string NombreLista { get; set; } = default!;
+
         public int NumeroLista { get; set; }
-        public string LogoUrl { get; set; }
+
+        public string? LogoUrl { get; set; }
 
         public int ProcesoElectoralId { get; set; }
-        [ForeignKey("ProcesoElectoralId")]
-        public virtual ProcesoElectoral Proceso { get; set; }
 
-        public virtual ICollection<Candidato> Candidatos { get; set; }
+        [ForeignKey(nameof(ProcesoElectoralId))]
+        public virtual ProcesoElectoral Proceso { get; set; } = default!;
+
+        public virtual ICollection<Candidato> Candidatos { get; set; } = new List<Candidato>();
     }
+
 }

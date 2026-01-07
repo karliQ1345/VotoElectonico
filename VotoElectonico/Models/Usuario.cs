@@ -7,39 +7,39 @@ namespace VotoElectonico.Models
         [Key]
         public int Id { get; set; }
 
-        // Identificador ÚNICO. 
-       
-        [Required]
-        [MaxLength(20)]
-        public string Cedula { get; set; }
-
-        // NOTA: Eliminamos Clave y OTP. La seguridad es 100% Correo + RAM.
+        [Required, StringLength(10, MinimumLength = 10)]
+        public string Cedula { get; set; } = default!; // ÚNICO (índice único)
 
         [Required]
         public RolUsuario Rol { get; set; }
 
-        [Required]
-        [EmailAddress]
-        public string CorreoElectronico { get; set; } // Vital para el Login
+        [Required, EmailAddress]
+        public string CorreoElectronico { get; set; } = default!;
 
         // --- DATOS DEMOGRÁFICOS ---
         [Required]
-        public string NombresCompletos { get; set; }
+        public string NombresCompletos { get; set; } = default!;
+
         [Required]
         public Genero Genero { get; set; }
+
         [Required]
-        public string Provincia { get; set; }
+        public string Provincia { get; set; } = default!;
+
         [Required]
-        public string Canton { get; set; }
+        public string Canton { get; set; } = default!;
+
         [Required]
-        public string Parroquia { get; set; }
+        public string Parroquia { get; set; } = default!;
+
+        // --- FOTO PARA VERIFICACIÓN / VISUALIZACIÓN ---
+        public string? FotoUrl { get; set; }
 
         // --- RELACIONES ---
-
-        // 1. Si es Candidato, aquí están sus datos de campaña (1 a 0..1)
+        // 1 a 0..1: si es candidato, tiene info de candidatura
         public virtual Candidato? InfoCandidatura { get; set; }
 
-        // 2. Si ya votó, aquí se guarda el registro (para Admin, Candidato y Votante)
-        public virtual ICollection<HistorialVotacion> HistorialDeVotaciones { get; set; }
+        // Log de "votó / no votó" por proceso (NO guarda contenido del voto)
+        public virtual ICollection<HistorialVotacion> HistorialDeVotaciones { get; set; } = new List<HistorialVotacion>();
     }
 }

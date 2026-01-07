@@ -72,9 +72,8 @@ namespace VotoElectonico.Data
             modelBuilder.Entity<DetalleVoto>().HasIndex(d => d.CandidatoId);
             modelBuilder.Entity<DetalleVoto>().HasIndex(d => d.PartidoPoliticoId);
 
-            base.OnModelCreating(modelBuilder);
 
-            // 7) 
+            // 7) CHECKS
             // Regla: NO permitir PartidoPoliticoId y CandidatoId ambos al mismo tiempo para un mismo detalle
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(

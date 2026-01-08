@@ -78,35 +78,35 @@ namespace VotoElectonico.Data
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_DetalleVoto_SoloUno",
-                    "NOT (PartidoPoliticoId IS NOT NULL AND CandidatoId IS NOT NULL)"
+                    "NOT (\"PartidoPoliticoId\" IS NOT NULL AND \"CandidatoId\" IS NOT NULL)"
                 ));
 
             // Regla: si Tipo=Candidato entonces CandidatoId NO NULL y PartidoPoliticoId NULL
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_DetalleVoto_TipoCandidato",
-                    "(Tipo <> 0) OR (CandidatoId IS NOT NULL AND PartidoPoliticoId IS NULL)"
+                    "(\"Tipo\" <> 0) OR (\"CandidatoId\" IS NOT NULL AND \"PartidoPoliticoId\" IS NULL)"
                 ));
 
             // Regla: si Tipo=Partido entonces PartidoPoliticoId NO NULL y CandidatoId NULL
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_DetalleVoto_TipoPartido",
-                    "(Tipo <> 1) OR (PartidoPoliticoId IS NOT NULL AND CandidatoId IS NULL)"
+                    "(\"Tipo\" <> 1) OR (\"PartidoPoliticoId\" IS NOT NULL AND \"CandidatoId\" IS NULL)"
                 ));
 
             // Regla: si Tipo es Si/No/Blanco, entonces ambos IDs NULL
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_DetalleVoto_TipoSinIds",
-                    "(Tipo IN (2,3,4)) OR (Tipo IN (0,1)) OR (1=1)"
+                    "(\"Tipo\" IN (2,3,4)) OR (\"Tipo\" IN (0,1)) OR (1=1)"
                 ));
             // Nota: el constraint anterior lo dejaría mejor como:
             // "(Tipo NOT IN (2,3,4,5)) OR (CandidatoId IS NULL AND PartidoPoliticoId IS NULL)"
             modelBuilder.Entity<DetalleVoto>()
                 .ToTable(t => t.HasCheckConstraint(
                     "CK_DetalleVoto_SiNoBlancoSinIds",
-                    "(Tipo NOT IN (2,3,4)) OR (CandidatoId IS NULL AND PartidoPoliticoId IS NULL)"
+                    "(\"Tipo\" NOT IN (2,3,4)) OR (\"CandidatoId\" IS NULL AND \"PartidoPoliticoId\" IS NULL)"
                 ));
         }
 

@@ -17,9 +17,12 @@ namespace VotoElectonico.Data
         public DbSet<ProcesoElectoral> ProcesosElectorales { get; set; }
         public DbSet<Candidato> Candidatos { get; set; }
 
+
         // Las nuevas tablas para el voto anónimo
         public DbSet<HistorialVotacion> HistorialVotaciones { get; set; }
         public DbSet<Voto> Votos { get; set; }
+
+        public DbSet<TwoFactorSession> TwoFactorSessions { get; set; }
 
         // --- REGLAS ESPECIALES DE LA BASE DE DATOS ---
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +111,9 @@ namespace VotoElectonico.Data
                     "CK_DetalleVoto_SiNoBlancoSinIds",
                     "(\"Tipo\" NOT IN (2,3,4)) OR (\"CandidatoId\" IS NULL AND \"PartidoPoliticoId\" IS NULL)"
                 ));
+
+            modelBuilder.Entity<TwoFactorSession>()
+                .HasIndex(t => new { t.UsuarioId, t.Usado, t.ExpiraUtc });
         }
 
     }

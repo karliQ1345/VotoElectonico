@@ -6,7 +6,6 @@ namespace VotoElectonico.DTOs.Procesos
     {
         public int Id { get; set; }
         public string Titulo { get; set; } = default!;
-
         public DateTime FechaInicio { get; set; }
         public DateTime FechaFin { get; set; }
 
@@ -19,8 +18,9 @@ namespace VotoElectonico.DTOs.Procesos
         public bool PermiteNominal { get; set; }
         public int? MaxSeleccionNominal { get; set; }
 
-        public int TotalPartidos { get; set; }
-        public int TotalVotos { get; set; }
+        public int PartidosRegistrados { get; set; }
+        public int VotosRegistrados { get; set; }
+        public int TotalVotantesQueYaVotaron { get; set; }
     }
 
 }

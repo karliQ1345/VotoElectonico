@@ -48,5 +48,12 @@
         Blanco = 4,
         Nulo = 5
     }
+    public enum AccionEstadoProceso
+    {
+        Activar = 0,
+        Finalizar = 1,
+        Suspender = 2,
+        Reanudar = 3
+    }
 
 }

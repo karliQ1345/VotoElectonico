@@ -23,7 +23,8 @@ namespace VotoElectonico.Data
         public DbSet<Voto> Votos { get; set; }
 
         public DbSet<TwoFactorSession> TwoFactorSessions { get; set; }
-
+        public DbSet<DetalleVoto> DetalleVotos { get; set; }
+        public DbSet<PartidoPolitico> PartidosPoliticos { get; set; }
         // --- REGLAS ESPECIALES DE LA BASE DE DATOS ---
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,7 +1,0 @@
-﻿namespace VotoElectonico.Services.Email
-{
-    public interface IEmailSender
-    {
-        Task SendAsync(string toEmail, string subject, string textBody, CancellationToken ct = default);
-    }
-}

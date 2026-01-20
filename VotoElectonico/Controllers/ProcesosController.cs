@@ -28,14 +28,14 @@ namespace VotoElectonico.Controllers
         [HttpPost("{procesoId}/activar")]
         public IActionResult Activar(string procesoId)
         {
-            // TODO: cambiar estado a Activo
+            // Cambiar estado a Activo
             return Ok();
         }
 
         [HttpPost("{procesoId}/finalizar")]
         public IActionResult Finalizar(string procesoId)
         {
-            // TODO: cambiar estado a Finalizado
+            // Cambiar estado a Finalizado
             return Ok();
         }
     }

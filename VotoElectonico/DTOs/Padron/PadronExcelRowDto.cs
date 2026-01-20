@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Padron;
+﻿namespace VotoElectonico.DTOs.Padron;
 
 public class PadronExcelRowDto
 {

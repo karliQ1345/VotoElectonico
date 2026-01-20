@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Auth;
+﻿namespace VotoElectonico.Auth;
 
 public class MeResponseDto
 {

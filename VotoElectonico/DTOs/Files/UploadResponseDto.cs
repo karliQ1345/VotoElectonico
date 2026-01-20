@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Files;
+﻿namespace VotoElectonico.DTOs.Files;
 
 public class UploadResponseDto
 {

@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Procesos;
+﻿namespace VotoElectonico.DTOs.Procesos;
 
 public class ProcesoResumenDto
 {

@@ -1,4 +1,6 @@
-﻿namespace TuProyecto.DTOs.Juntas;
+﻿using VotoElectonico.DTOs.Juntas;
+
+namespace VotoElectonico.Juntas;
 
 public class JefeVerificarVotanteResponseDto
 {

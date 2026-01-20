@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Votacion;
+﻿namespace VotoElectonico.DTOs.Votacion;
 
 public class IniciarVotacionRequestDto
 {

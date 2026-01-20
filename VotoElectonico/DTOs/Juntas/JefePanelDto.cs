@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Juntas;
+﻿namespace VotoElectonico.DTOs.Juntas;
 
 public class JefePanelDto
 {

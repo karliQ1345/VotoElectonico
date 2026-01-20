@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.Options;
+﻿namespace VotoElectonico.Options;
 
 public class TwoFactorOptions
 {

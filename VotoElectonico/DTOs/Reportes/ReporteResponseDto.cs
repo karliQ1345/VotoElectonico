@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Reportes;
+﻿namespace VotoElectonico.DTOs.Reportes;
 
 public class ReporteResponseDto
 {

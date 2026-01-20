@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Common;
+﻿namespace VotoElectonico.DTOs.Common;
 
 public class ApiResponse<T>
 {

@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Email;
+﻿namespace VotoElectonico.DTOs.Email;
 
 public class SendEmailDto
 {

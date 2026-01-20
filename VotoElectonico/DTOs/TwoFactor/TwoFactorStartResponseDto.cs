@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.TwoFactor;
+﻿namespace VotoElectonico.DTOs.TwoFactor;
 
 public class TwoFactorStartResponseDto
 {

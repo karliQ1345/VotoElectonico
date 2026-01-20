@@ -1,4 +1,4 @@
-﻿namespace TuProyecto.DTOs.Elecciones;
+﻿namespace VotoElectonico.DTOs.Elecciones;
 
 public class CrearCandidatoRequestDto
 {

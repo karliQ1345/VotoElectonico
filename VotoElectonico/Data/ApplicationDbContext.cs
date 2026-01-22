@@ -232,17 +232,19 @@ namespace VotoElectonico.Data
                 e.HasIndex(x => new { x.ProcesoElectoralId, x.UsuarioId });
                 e.HasIndex(x => x.EstadoEnvio);
 
-                e.HasOne<Usuario>()
+                e.HasOne(x => x.Usuario)
                     .WithMany()
                     .HasForeignKey(x => x.UsuarioId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                e.HasOne<Junta>()
+    
+                e.HasOne(x => x.Junta)
                     .WithMany()
                     .HasForeignKey(x => x.JuntaId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                e.HasOne<Usuario>()
+
+                e.HasOne(x => x.JefeJuntaUsuario)
                     .WithMany()
                     .HasForeignKey(x => x.JefeJuntaUsuarioId)
                     .OnDelete(DeleteBehavior.Restrict);

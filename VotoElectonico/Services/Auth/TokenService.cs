@@ -52,3 +52,4 @@ namespace VotoElectonico.Services.Auth
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
+}

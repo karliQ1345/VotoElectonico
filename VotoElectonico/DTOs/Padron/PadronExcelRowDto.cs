@@ -1,7 +1,10 @@
-﻿namespace VotoElectonico.DTOs.Padron;
+﻿using VotoElectonico.Models.Enums;
+
+namespace VotoElectonico.DTOs.Padron;
 
 public class PadronExcelRowDto
 {
+    public RolTipo Rol { get; set; }
     public string Cedula { get; set; } = null!;
     public string NombreCompleto { get; set; } = null!;
     public string Email { get; set; } = null!;

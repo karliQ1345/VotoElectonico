@@ -237,12 +237,10 @@ namespace VotoElectonico.Data
                     .HasForeignKey(x => x.UsuarioId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-    
                 e.HasOne(x => x.Junta)
                     .WithMany()
                     .HasForeignKey(x => x.JuntaId)
                     .OnDelete(DeleteBehavior.Restrict);
-
 
                 e.HasOne(x => x.JefeJuntaUsuario)
                     .WithMany()

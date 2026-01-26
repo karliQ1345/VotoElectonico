@@ -29,12 +29,13 @@ namespace VotoElectonico.Services.Auth
                 .ToListAsync(ct);
 
             var claims = new List<Claim>
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim("cedula", user.Cedula),
-            new Claim("nombre", user.NombreCompleto ?? "")
-        };
-
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim("cedula", user.Cedula),
+                new Claim("nombre", user.NombreCompleto ?? "")
+            };
+    
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));
 

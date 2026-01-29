@@ -1,3 +1,5 @@
+using VotoElect.MVC.Services;
+
 namespace VotoElect.MVC
 {
     public class Program
@@ -6,16 +8,40 @@ namespace VotoElect.MVC
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
             builder.Services.AddControllersWithViews();
+
+            // Cache para Session
+            builder.Services.AddDistributedMemoryCache();
+
+            // Session (guardar cedula, rol, token, 2FA sessionId, etc.)
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
+            // HttpClient para la API
+            var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:5001/";
+            builder.Services.AddHttpClient("Api", c =>
+            {
+                c.BaseAddress = new Uri(apiBase);
+            });
+
+            //builder.Services.ConfigureHttpJsonOptions(opts =>
+            //{
+            //    opts.SerializerOptions.PropertyNameCaseInsensitive = true;
+            //});
+
+
+            // Registrar ApiService en DI
+            builder.Services.AddScoped<ApiService>();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -23,6 +49,8 @@ namespace VotoElect.MVC
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseSession();
 
             app.UseAuthorization();
 
@@ -34,3 +62,4 @@ namespace VotoElect.MVC
         }
     }
 }
+

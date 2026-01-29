@@ -1,8 +1,248 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Hero Start -->
+<div id="inicio" class="container-fluid p-0 mb-5">
+    <div class="position-relative overlay-bottom">
+        <img class="w-100" src="~/img/ecu.jpg" alt="Fondo" style="max-height: 620px; object-fit: cover;">
+        <div class="carousel-caption d-flex flex-column align-items-center justify-content-center" style="position:absolute; inset:0;">
+            <span class="pill pill-info mb-3">Portal electoral</span>
+            <h1 class="display-1 text-white m-0 text-uppercase">VotoEcua</h1>
+            <h3 class="text-white mt-3 mb-4">Acceso por cédula • Gestión por roles • Publicación de resultados</h3>
+            <div class="d-flex flex-wrap justify-content-center">
+                <a asp-controller="Acceso" asp-action="Index" class="btn btn-primary font-weight-bold py-3 px-5 mr-2 mb-2">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Iniciar sesión
+                </a>
+                <a href="#resultados" class="btn btn-secondary font-weight-bold py-3 px-5 mb-2">
+                    <i class="fas fa-chart-bar mr-2"></i>Ver resultados
+                </a>
+            </div>
+            <p class="text-white mt-4 small-muted">
+                Nota: Los resultados se mostrarán únicamente cuando el proceso esté finalizado.
+            </p>
+        </div>
+    </div>
 </div>
+<!-- Hero End -->
+<!-- Resultados -->
+<div id="resultados" class="container-fluid py-5">
+    <div class="container">
+        <div class="section-title">
+            <h4 class="text-primary text-uppercase" style="letter-spacing: 5px;">Resultados</h4>
+            <h1 class="display-4">Publicación oficial</h1>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-5 mb-4">
+                <div class="p-4 card-soft">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <h4 class="mb-1">Estado del proceso</h4>
+                            <p class="m-0 small-muted">Se actualiza automáticamente cuando el Administrador cierra el proceso.</p>
+                        </div>
+                        <span id="estadoPill" class="pill pill-warn">En proceso</span>
+                    </div>
+                    <hr>
+                    <p class="m-0"><i class="fas fa-clock mr-2 text-primary"></i><b>Ventana:</b> <span id="rangoProceso">--</span></p>
+                    <p class="m-0 mt-2"><i class="fas fa-info-circle mr-2 text-primary"></i><b>Mensaje:</b> <span id="estadoMsg">--</span></p>
+
+                    <div class="mt-4">
+                        <div class="form-hint mb-2">Modo demo (solo UI):</div>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="toggleFinalizado">
+                            <label class="custom-control-label" for="toggleFinalizado">Simular proceso finalizado</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7 mb-4">
+                <div class="p-4 card-soft">
+                    <h4 class="mb-3">Resultados nacionales</h4>
+
+                    <div id="bloqueEnProceso" class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-hourglass-half text-primary mr-3" style="font-size: 1.4rem;"></i>
+                            <div>
+                                <div class="font-weight-bold">Proceso electoral en proceso</div>
+                                <div class="small-muted">Los resultados se visualizarán después de su finalización.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bloqueFinalizado" style="display:none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                                    <div class="small-muted mb-1">Total votos</div>
+                                    <div class="display-4 m-0" id="totalVotos">0</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                                    <div class="small-muted mb-1">Juntas reportadas</div>
+                                    <div class="display-4 m-0" id="juntasReportadas">0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                            <div class="font-weight-bold mb-2">Distribución (demo)</div>
+
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Candidato A</span><span class="mono" id="aPct">0%</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 12px;">
+                                <div class="progress-bar" role="progressbar" id="aBar" style="width:0%"></div>
+                            </div>
+
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Candidato B</span><span class="mono" id="bPct">0%</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 12px;">
+                                <div class="progress-bar" role="progressbar" id="bBar" style="width:0%"></div>
+                            </div>
+
+                            <div class="mb-2 d-flex justify-content-between">
+                                <span>Blanco</span><span class="mono" id="blPct">0%</span>
+                            </div>
+                            <div class="progress" style="height: 12px;">
+                                <div class="progress-bar" role="progressbar" id="blBar" style="width:0%"></div>
+                            </div>
+
+                            <hr>
+                            <div class="small-muted">*En el sistema real estos datos vendrán de los reportes de cada Junta.</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="p-4 card-soft">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between">
+                        <div>
+                            <h4 class="mb-1">Reportes y filtros</h4>
+                            <p class="m-0 small-muted">Ejemplo de filtros que el sistema calcula (Provincia, Cantón, Género).</p>
+                        </div>
+                        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-primary font-weight-bold">
+                            <i class="fas fa-user-shield mr-2"></i>Ir al panel Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        // --- Datos demo ---
+        const proceso = {
+          nombre: "Elección General (Demo)",
+          inicio: "2026-01-20 08:00",
+          fin: "2026-01-27 17:00",
+          estado: "EN_PROCESO" // EN_PROCESO | FINALIZADO
+        };
+
+        const resultadosDemo = {
+          juntasReportadas: 48,
+          totalVotos: 152340,
+          candidatoA: 71320,
+          candidatoB: 74210,
+          blanco: 6810
+        };
+
+        const recintos = [
+          {provincia:"Pichincha", canton:"Quito", nombre:"Unidad Educativa Central (Demo)", lat:-0.180653, lng:-78.467834},
+          {provincia:"Guayas", canton:"Guayaquil", nombre:"Colegio Modelo (Demo)", lat:-2.189412, lng:-79.889066},
+          {provincia:"Azuay", canton:"Cuenca", nombre:"Escuela República (Demo)", lat:-2.900128, lng:-79.005896},
+          {provincia:"Manabí", canton:"Portoviejo", nombre:"Unidad Educativa 24 de Mayo (Demo)", lat:-1.054579, lng:-80.454451},
+          {provincia:"Tungurahua", canton:"Ambato", nombre:"Colegio Bolívar (Demo)", lat:-1.249080, lng:-78.616750}
+        ];
+
+        // --- Estado / resultados ---
+        const estadoPill = document.getElementById("estadoPill");
+        const estadoMsg  = document.getElementById("estadoMsg");
+        const rango      = document.getElementById("rangoProceso");
+        const bloqueEnProceso = document.getElementById("bloqueEnProceso");
+        const bloqueFinalizado = document.getElementById("bloqueFinalizado");
+        const toggle = document.getElementById("toggleFinalizado");
+
+        function renderProceso(){
+          rango.textContent = `${proceso.inicio} — ${proceso.fin}`;
+          const finalizado = (proceso.estado === "FINALIZADO");
+
+          if(finalizado){
+            estadoPill.className = "pill pill-ok";
+            estadoPill.textContent = "Finalizado";
+            estadoMsg.textContent = "Resultados publicados.";
+            bloqueEnProceso.style.display = "none";
+            bloqueFinalizado.style.display = "block";
+
+            document.getElementById("totalVotos").textContent = resultadosDemo.totalVotos.toLocaleString("es-EC");
+            document.getElementById("juntasReportadas").textContent = resultadosDemo.juntasReportadas.toLocaleString("es-EC");
+
+            const total = resultadosDemo.candidatoA + resultadosDemo.candidatoB + resultadosDemo.blanco;
+            const a = Math.round((resultadosDemo.candidatoA/total)*100);
+            const b = Math.round((resultadosDemo.candidatoB/total)*100);
+            const bl = Math.max(0, 100 - a - b);
+
+            document.getElementById("aPct").textContent = a + "%";
+            document.getElementById("bPct").textContent = b + "%";
+            document.getElementById("blPct").textContent = bl + "%";
+
+            document.getElementById("aBar").style.width = a + "%";
+            document.getElementById("bBar").style.width = b + "%";
+            document.getElementById("blBar").style.width = bl + "%";
+          }else{
+            estadoPill.className = "pill pill-warn";
+            estadoPill.textContent = "En proceso";
+            estadoMsg.textContent = "Proceso electoral en proceso; resultados no visibles todavía.";
+            bloqueEnProceso.style.display = "block";
+            bloqueFinalizado.style.display = "none";
+          }
+        }
+
+        toggle.addEventListener("change", (e)=>{
+          proceso.estado = e.target.checked ? "FINALIZADO" : "EN_PROCESO";
+          renderProceso();
+        });
+
+        // --- Recintos ---
+        const lista = document.getElementById("listaRecintos");
+        const q = document.getElementById("qRecinto");
+        const mapFrame = document.getElementById("mapFrame");
+
+        function renderRecintos(){
+          const term = (q.value || "").toLowerCase().trim();
+          const items = recintos.filter(r => (`${r.provincia} ${r.canton} ${r.nombre}`.toLowerCase()).includes(term));
+
+          lista.innerHTML = items.map((r, idx)=>`
+            <button class="btn btn-outline-primary btn-block text-left mb-2" data-idx="${idx}">
+              <div class="font-weight-bold">${r.nombre}</div>
+              <div class="small-muted">${r.provincia} • ${r.canton}</div>
+            </button>
+          `).join("") || `<div class="small-muted">No se encontraron recintos con ese criterio.</div>`;
+
+          [...lista.querySelectorAll("button[data-idx]")].forEach(btn=>{
+            btn.addEventListener("click", ()=>{
+              const index = parseInt(btn.getAttribute("data-idx"), 10);
+              const r = items[index];
+              mapFrame.src = `https://www.google.com/maps?q=${r.lat},${r.lng}&z=14&output=embed`;
+            });
+          });
+        }
+
+        q.addEventListener("input", renderRecintos); 
+
+        // init
+        renderProceso();
+        renderRecintos();
+    </script>
+}

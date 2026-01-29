@@ -3,7 +3,7 @@ using VotoElect.MVC.ApiContracts;
 using VotoElect.MVC.Services;
 using VotoElect.MVC.ViewModels;
 
-namespace VotoElectronico.MVC.Controllers;
+namespace VotoElect.MVC.Controllers;
 
 public class VotantesController : Controller
 {

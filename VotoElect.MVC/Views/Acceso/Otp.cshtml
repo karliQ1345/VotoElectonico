@@ -1,0 +1,60 @@
+﻿@model VotoElect.MVC.ViewModels.AccesoOtpVm
+@{
+    ViewData["Title"] = "OTP";
+}
+
+<div class="container-fluid page-header mb-5 position-relative overlay-bottom">
+    <div class="d-flex flex-column align-items-center justify-content-center pt-0 pt-lg-5" style="min-height: 340px">
+        <h1 class="display-4 mb-3 mt-0 mt-lg-5 text-white text-uppercase">Verificación</h1>
+        <div class="d-inline-flex mb-lg-5">
+            <p class="m-0 text-white"><a class="text-white" asp-controller="Home" asp-action="Index">Inicio</a></p>
+            <p class="m-0 text-white px-2">/</p>
+            <p class="m-0 text-white">OTP</p>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid pt-5">
+    <div class="container">
+        <div class="section-title">
+            <h4 class="text-primary text-uppercase" style="letter-spacing: 5px;">2FA</h4>
+            <h1 class="display-4">Código OTP</h1>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-6 mb-4">
+                <div class="p-4 card-soft">
+                    <p class="small-muted mb-3">
+                        Te enviamos un código a: <b>@(Model?.EmailEnmascarado ?? "tu correo")</b>
+                    </p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model?.Error))
+                    {
+                        <div class="alert alert-danger" style="border-radius:14px;">@Model.Error</div>
+                    }
+
+                    <form method="post" asp-action="Otp">
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Código OTP</label>
+                            <input name="codigo" value="@Model?.Codigo" type="text"
+                                   class="form-control bg-transparent p-4"
+                                   placeholder="6 dígitos" maxlength="6" required>
+                        </div>
+
+                        <button class="btn btn-primary font-weight-bold py-3 px-5" type="submit">
+                            <i class="fas fa-unlock mr-2"></i>Validar y entrar
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+

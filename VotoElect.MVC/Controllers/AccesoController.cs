@@ -32,20 +32,19 @@ public class AccesoController : Controller
             return View(vm);
         }
 
-        HttpContext.Session.SetString("rol", resp.Data.RolPrincipal ?? "");
-        HttpContext.Session.SetString("redirect", resp.Data.Redirect ?? "");
+        HttpContext.Session.SetString(SessionKeys.Cedula, vm.Cedula);
+        HttpContext.Session.SetString(SessionKeys.Rol, resp.Data.RolPrincipal ?? "");
+        HttpContext.Session.SetString("REDIRECT", resp.Data.Redirect ?? "");
+        HttpContext.Session.SetString(SessionKeys.EmailMasked, resp.Data.EmailEnmascarado ?? "");
 
         if (resp.Data.RequiereTwoFactor)
         {
             if (!string.IsNullOrWhiteSpace(resp.Data.TwoFactorSessionId))
-                HttpContext.Session.SetString("twoFactorSessionId", resp.Data.TwoFactorSessionId);
+                HttpContext.Session.SetString(SessionKeys.TwoFactorSessionId, resp.Data.TwoFactorSessionId);
 
-            HttpContext.Session.SetString("emailMask", resp.Data.EmailEnmascarado ?? "");
             return RedirectToAction(nameof(Otp));
         }
 
-
-        // Si no requiere OTP (votante) → ir a pedir código
         return RedirectToAction("Codigo", "Votantes");
     }
 
@@ -54,7 +53,7 @@ public class AccesoController : Controller
     {
         var vm = new AccesoOtpVm
         {
-            EmailEnmascarado = HttpContext.Session.GetString("emailMask")
+            EmailEnmascarado = HttpContext.Session.GetString(SessionKeys.EmailMasked) ?? ""
         };
         return View(vm);
     }
@@ -63,9 +62,13 @@ public class AccesoController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Otp(string codigo, CancellationToken ct)
     {
-        var vm = new AccesoOtpVm { Codigo = (codigo ?? "").Trim() };
+        var vm = new AccesoOtpVm
+        {
+            Codigo = (codigo ?? "").Trim(),
+            EmailEnmascarado = HttpContext.Session.GetString(SessionKeys.EmailMasked) ?? ""
+        };
 
-        var sessionId = HttpContext.Session.GetString("twoFactorSessionId");
+        var sessionId = HttpContext.Session.GetString(SessionKeys.TwoFactorSessionId);
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             vm.Error = "Sesión OTP expirada. Vuelva a ingresar su cédula.";
@@ -79,24 +82,29 @@ public class AccesoController : Controller
         }
 
         var resp = await _api.VerifyOtpAsync(sessionId, vm.Codigo, ct);
-        if (resp == null || !resp.Ok || resp.Data == null)
+        if (resp == null || !resp.Ok || resp.Data == null || !resp.Data.Verificado)
         {
             vm.Error = resp?.Message ?? "OTP inválido.";
             return View(vm);
         }
 
-        // Guardar token y redirigir por rol
-        HttpContext.Session.SetString("token", resp.Data.Token ?? "");
+        HttpContext.Session.SetString(SessionKeys.Token, resp.Data.Token ?? "");
+        HttpContext.Session.SetString(SessionKeys.Rol, resp.Data.RolPrincipal ?? "");
 
-        var rol = HttpContext.Session.GetString("rol") ?? "";
-        if (rol.Contains("JefeJunta", StringComparison.OrdinalIgnoreCase))
+        
+        HttpContext.Session.Remove(SessionKeys.TwoFactorSessionId);
+
+        var redirect = resp.Data.Redirect ?? "";
+        if (!string.IsNullOrWhiteSpace(redirect) && redirect.StartsWith("/"))
+            return Redirect(redirect);
+
+        if (resp.Data.RolPrincipal == "Administrador")
+            return RedirectToAction("Procesos", "Admin");
+
+        if (resp.Data.RolPrincipal == "JefeJunta")
             return RedirectToAction("Panel", "JefeJunta");
 
-        if (rol.Contains("Admin", StringComparison.OrdinalIgnoreCase))
-            return RedirectToAction("Dashboard", "Admin");
-
-        // fallback
-        return RedirectToAction("Codigo", "Votantes");
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
@@ -106,5 +114,7 @@ public class AccesoController : Controller
         return RedirectToAction("Index", "Home");
     }
 }
+
+
 
 

@@ -1,0 +1,95 @@
+﻿@model VotantesPapeletaVm
+@{
+    ViewData["Title"] = "Papeleta";
+    var b = Model.Boleta;
+}
+
+<h2>@b.Titulo</h2>
+<p class="text-muted">Selecciona tu opción y confirma.</p>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<form method="post" asp-action="Confirmar">
+    <input type="hidden" name="procesoElectoralId" value="@b.ProcesoElectoralId" />
+    <input type="hidden" name="eleccionId" value="@b.EleccionId" />
+    <input type="hidden" name="tipoEleccion" value="@b.TipoEleccion" />
+
+    @if (b.TipoEleccion == "Presidente_SiNoBlanco")
+    {
+        <div class="list-group" style="max-width:520px;">
+            @foreach (var op in new[] { "SI", "NO", "BLANCO" })
+            {
+                <label class="list-group-item d-flex align-items-center gap-3">
+                    <input class="form-check-input" type="radio" name="opcionPresidente" value="@op" required />
+                    <div class="fw-bold">@op</div>
+                </label>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-md-6">
+                <h5>Voto por plancha</h5>
+                <div class="list-group">
+                    @foreach (var l in b.Listas)
+                    {
+                        <label class="list-group-item d-flex align-items-center gap-3">
+                            <input class="form-check-input" type="radio" name="partidoListaId" value="@l.PartidoListaId" />
+                            <div>
+                                <div class="fw-bold">@l.Nombre</div>
+                                <div class="text-muted">Código: @l.Codigo</div>
+                            </div>
+                        </label>
+                    }
+                </div>
+                <div class="form-text">Si eliges plancha, no selecciones candidatos individuales.</div>
+            </div>
+
+            <div class="col-md-6">
+                <h5>Voto individual (máx @b.MaxSeleccionIndividual)</h5>
+                <div class="list-group">
+                    @foreach (var c in b.Candidatos)
+                    {
+                        <label class="list-group-item d-flex align-items-center gap-3">
+                            <input class="form-check-input candidatoChk" type="checkbox" name="candidatoIds" value="@c.CandidatoId" />
+                            <div>
+                                <div class="fw-bold">@c.NombreCompleto</div>
+                                <div class="text-muted">@c.Cargo</div>
+                            </div>
+                        </label>
+                    }
+                </div>
+                <div class="form-text">Si eliges candidatos, deja plancha en blanco.</div>
+            </div>
+        </div>
+
+        <script>
+            // Exclusión simple: si marca plancha, limpia candidatos; si marca candidatos, limpia plancha
+            const planchas = document.querySelectorAll('input[name="partidoListaId"]');
+            const chks = document.querySelectorAll('.candidatoChk');
+            const max = parseInt("@(b.MaxSeleccionIndividual ?? 0)");
+
+            planchas.forEach(r => r.addEventListener('change', () => {
+                chks.forEach(c => c.checked = false);
+            }));
+
+            chks.forEach(c => c.addEventListener('change', () => {
+                if (c.checked) planchas.forEach(r => r.checked = false);
+
+                const selected = [...chks].filter(x => x.checked).length;
+                if (max > 0 && selected > max) {
+                    c.checked = false;
+                    alert("Máximo permitido: " + max);
+                }
+            }));
+        </script>
+    }
+
+    <button class="btn btn-primary mt-3">Confirmar</button>
+</form>
+
+

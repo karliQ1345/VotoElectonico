@@ -62,6 +62,51 @@ public class ApiService
         var resp = await Client().SendAsync(msg, ct);
         return await resp.Content.ReadFromJsonAsync<ApiResponse<JefeVerificarVotanteResponseDto>>(cancellationToken: ct);
     }
+
+    // ---- Admin
+    public async Task<ApiResponse<List<ProcesoResumenDto>>?> AdminListarProcesosAsync(string token, CancellationToken ct = default)
+{
+    using var msg = new HttpRequestMessage(HttpMethod.Get, "api/procesos");
+    msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+    var resp = await Client().SendAsync(msg, ct);
+    return await resp.Content.ReadFromJsonAsync<ApiResponse<List<ProcesoResumenDto>>>(cancellationToken: ct);
+}
+
+public async Task<ApiResponse<IdResponseDto>?> AdminCrearProcesoAsync(CrearProcesoRequestDto req, string token, CancellationToken ct = default)
+{
+    using var msg = new HttpRequestMessage(HttpMethod.Post, "api/procesos");
+    msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    msg.Content = JsonContent.Create(req);
+
+    var resp = await Client().SendAsync(msg, ct);
+    return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
+}
+
+public async Task<ApiResponse<string>?> AdminActivarProcesoAsync(string procesoId, string token, CancellationToken ct = default)
+{
+    using var msg = new HttpRequestMessage(HttpMethod.Post, $"api/procesos/{procesoId}/activar");
+    msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+    var resp = await Client().SendAsync(msg, ct);
+    return await resp.Content.ReadFromJsonAsync<ApiResponse<string>>(cancellationToken: ct);
+}
+
+public async Task<ApiResponse<string>?> AdminFinalizarProcesoAsync(string procesoId, string token, CancellationToken ct = default)
+{
+    using var msg = new HttpRequestMessage(HttpMethod.Post, $"api/procesos/{procesoId}/finalizar");
+    msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+    var resp = await Client().SendAsync(msg, ct);
+    return await resp.Content.ReadFromJsonAsync<ApiResponse<string>>(cancellationToken: ct);
+}
+
+public async Task<ApiResponse<ReporteResponseDto>?> GetReporteAsync(ReporteFiltroDto filtro, CancellationToken ct = default)
+{
+    var resp = await Client().PostAsJsonAsync("api/reportes", filtro, ct);
+    return await resp.Content.ReadFromJsonAsync<ApiResponse<ReporteResponseDto>>(cancellationToken: ct);
+}
+
 }
 
 

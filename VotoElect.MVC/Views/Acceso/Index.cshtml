@@ -1,0 +1,70 @@
+﻿@model VotoElect.MVC.ViewModels.AccesoIndexVm
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container-fluid page-header mb-5 position-relative overlay-bottom">
+    <div class="d-flex flex-column align-items-center justify-content-center pt-0 pt-lg-5" style="min-height: 340px">
+        <h1 class="display-4 mb-3 mt-0 mt-lg-5 text-white text-uppercase">Login</h1>
+        <div class="d-inline-flex mb-lg-5">
+            <p class="m-0 text-white"><a class="text-white" asp-controller="Home" asp-action="Index">Inicio</a></p>
+            <p class="m-0 text-white px-2">/</p>
+            <p class="m-0 text-white">Login</p>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid pt-5">
+    <div class="container">
+        <div class="section-title">
+            <h4 class="text-primary text-uppercase" style="letter-spacing: 5px;">Acceso</h4>
+            <h1 class="display-4">Validación por cédula</h1>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="p-4 card-soft">
+                    <h4 class="mb-3">Paso 1: Ingresa tu cédula</h4>
+
+                    @if (!string.IsNullOrWhiteSpace(Model?.Error))
+                    {
+                        <div class="alert alert-danger" style="border-radius:14px;">@Model.Error</div>
+                    }
+
+                    <form method="post" asp-action="Index">
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">Número de cédula</label>
+                            <input name="cedula" value="@Model?.Cedula" type="text"
+                                   class="form-control bg-transparent p-4"
+                                   placeholder="Ej: 0102030405" maxlength="10" required>
+                            <div class="form-hint mt-2">El sistema detecta tu rol automáticamente.</div>
+                        </div>
+
+                        <button class="btn btn-primary font-weight-bold py-3 px-5" type="submit">
+                            <i class="fas fa-check mr-2"></i>Validar identidad
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="p-4 card-soft">
+                    <h4 class="mb-3">¿Qué sigue?</h4>
+                    <div class="small-muted">
+                        <ul class="mb-0">
+                            <li>Si eres <b>Votante</b>, irás a la pantalla para ingresar el <b>código</b> entregado por el Jefe de Junta.</li>
+                            <li>Si eres <b>Jefe de Junta</b> o <b>Administrador</b>, irás a <b>OTP</b> (2FA).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+

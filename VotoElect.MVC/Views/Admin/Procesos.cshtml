@@ -1,0 +1,94 @@
+﻿@model VotoElect.MVC.ViewModels.AdminProcesosVm
+@{
+    ViewData["Title"] = "Procesos Electorales";
+}
+
+<div class="container py-4">
+    <h2 class="mb-3">Procesos Electorales</h2>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Ok))
+    {
+        <div class="alert alert-success">@Model.Ok</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="alert alert-danger">@Model.Error</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="p-4 card-soft">
+                <h4 class="mb-3">Crear proceso</h4>
+
+                <form asp-action="CrearProceso" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="font-weight-bold">Nombre</label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Elección General 2026" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="font-weight-bold">Inicio (UTC)</label>
+                        <input asp-for="InicioUtc" type="datetime-local" class="form-control" />
+                        <div class="small-muted mt-1">La API trabaja con UTC.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="font-weight-bold">Fin (UTC)</label>
+                        <input asp-for="FinUtc" type="datetime-local" class="form-control" />
+                    </div>
+
+                    <button class="btn btn-primary w-100">Crear</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="p-4 card-soft">
+                <h4 class="mb-3">Listado</h4>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Estado</th>
+                                <th>Ventana</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Procesos)
+                            {
+                                <tr>
+                                    <td>@p.Nombre</td>
+                                    <td>@p.Estado</td>
+                                    <td>@p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="text-end">
+                                        <form asp-action="Activar" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
+                                            <button type="submit" class="btn btn-outline-dark btn-sm">Activar</button>
+                                        </form>
+
+                                        <form asp-action="Finalizar" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
+                                            <button type="submit" class="btn btn-danger btn-sm">Finalizar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="small-muted">
+                    Activar cambia a <b>Activo</b>. Finalizar cambia a <b>Finalizado</b>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

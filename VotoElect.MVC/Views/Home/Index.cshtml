@@ -44,8 +44,14 @@
                         <span id="estadoPill" class="pill pill-warn">En proceso</span>
                     </div>
                     <hr>
-                    <p class="m-0"><i class="fas fa-clock mr-2 text-primary"></i><b>Ventana:</b> <span id="rangoProceso">--</span></p>
-                    <p class="m-0 mt-2"><i class="fas fa-info-circle mr-2 text-primary"></i><b>Mensaje:</b> <span id="estadoMsg">--</span></p>
+                    <p class="m-0">
+                        <i class="fas fa-clock mr-2 text-primary"></i>
+                        <b>Ventana:</b> <span id="rangoProceso">--</span>
+                    </p>
+                    <p class="m-0 mt-2">
+                        <i class="fas fa-info-circle mr-2 text-primary"></i>
+                        <b>Mensaje:</b> <span id="estadoMsg">--</span>
+                    </p>
 
                     <div class="mt-4">
                         <div class="form-hint mb-2">Modo demo (solo UI):</div>
@@ -120,18 +126,35 @@
             </div>
         </div>
 
+        <!-- Reportes + filtros -->
         <div class="row mt-2">
             <div class="col-12">
                 <div class="p-4 card-soft">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between">
+
+                    <div class="d-flex flex-wrap align-items-end justify-content-between">
                         <div>
                             <h4 class="mb-1">Reportes y filtros</h4>
-                            <p class="m-0 small-muted">Ejemplo de filtros que el sistema calcula (Provincia, Cantón, Género).</p>
+                            <p class="m-0 small-muted">Filtros (Provincia, Cantón, Parroquia, Género).</p>
                         </div>
-                        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-primary font-weight-bold">
-                            <i class="fas fa-user-shield mr-2"></i>Ir al panel Admin
-                        </a>
+
+                        <div class="d-flex gap-2">
+                            <select id="dimensionSelect" class="form-control" style="min-width:220px;">
+                                <option value="Provincia">Provincia</option>
+                                <option value="Canton">Cantón</option>
+                                <option value="Parroquia">Parroquia</option>
+                                <option value="Genero">Género</option>
+                            </select>
+@* 
+                            <a asp-controller="Admin" asp-action="Procesos" class="btn btn-primary">
+                                Panel Admin
+                            </a> *@
+                        </div>
                     </div>
+
+                    <hr />
+
+                    <div id="tablaResultados" class="table-responsive"></div>
+
                 </div>
             </div>
         </div>
@@ -142,7 +165,19 @@
 
 @section Scripts {
     <script>
-        // --- Datos demo ---
+        // --- Estado / UI ---
+        const estadoPill = document.getElementById("estadoPill");
+        const estadoMsg  = document.getElementById("estadoMsg");
+        const rango      = document.getElementById("rangoProceso");
+        const bloqueEnProceso = document.getElementById("bloqueEnProceso");
+        const bloqueFinalizado = document.getElementById("bloqueFinalizado");
+        const toggle = document.getElementById("toggleFinalizado");
+
+        // --- Filtros + salida ---
+        const dimensionSelect = document.getElementById("dimensionSelect");
+        const tablaResultados = document.getElementById("tablaResultados");
+
+        // --- Datos demo (se mantienen) ---
         const proceso = {
           nombre: "Elección General (Demo)",
           inicio: "2026-01-20 08:00",
@@ -158,54 +193,121 @@
           blanco: 6810
         };
 
-        const recintos = [
-          {provincia:"Pichincha", canton:"Quito", nombre:"Unidad Educativa Central (Demo)", lat:-0.180653, lng:-78.467834},
-          {provincia:"Guayas", canton:"Guayaquil", nombre:"Colegio Modelo (Demo)", lat:-2.189412, lng:-79.889066},
-          {provincia:"Azuay", canton:"Cuenca", nombre:"Escuela República (Demo)", lat:-2.900128, lng:-79.005896},
-          {provincia:"Manabí", canton:"Portoviejo", nombre:"Unidad Educativa 24 de Mayo (Demo)", lat:-1.054579, lng:-80.454451},
-          {provincia:"Tungurahua", canton:"Ambato", nombre:"Colegio Bolívar (Demo)", lat:-1.249080, lng:-78.616750}
-        ];
+        // --- Helpers UI ---
+        function setEnProceso(){
+          estadoPill.className = "pill pill-warn";
+          estadoPill.textContent = "En proceso";
+          estadoMsg.textContent = "Proceso electoral en proceso; resultados no visibles todavía.";
+          bloqueEnProceso.style.display = "block";
+          bloqueFinalizado.style.display = "none";
+          tablaResultados.innerHTML = "";
+        }
 
-        // --- Estado / resultados ---
-        const estadoPill = document.getElementById("estadoPill");
-        const estadoMsg  = document.getElementById("estadoMsg");
-        const rango      = document.getElementById("rangoProceso");
-        const bloqueEnProceso = document.getElementById("bloqueEnProceso");
-        const bloqueFinalizado = document.getElementById("bloqueFinalizado");
-        const toggle = document.getElementById("toggleFinalizado");
+        function setFinalizado(){
+          estadoPill.className = "pill pill-ok";
+          estadoPill.textContent = "Finalizado";
+          estadoMsg.textContent = "Resultados publicados.";
+          bloqueEnProceso.style.display = "none";
+          bloqueFinalizado.style.display = "block";
+        }
+
+        function escapeHtml(str){
+          return String(str)
+            .replaceAll("&","&amp;")
+            .replaceAll("<","&lt;")
+            .replaceAll(">","&gt;")
+            .replaceAll('"',"&quot;")
+            .replaceAll("'","&#039;");
+        }
+
+        function renderTabla(dimension, actualizadoUtc, items){
+          if(!items || items.length === 0){
+            tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
+            return;
+          }
+
+          items.sort((a,b)=> (b.votos||0) - (a.votos||0));
+
+          const filas = items.map(it => `
+            <tr>
+              <td>${escapeHtml(it.dimensionValor ?? "")}</td>
+              <td>${escapeHtml(it.opcion ?? "")}</td>
+              <td class="text-right">${Number(it.votos||0).toLocaleString("es-EC")}</td>
+            </tr>
+          `).join("");
+
+          const utc = actualizadoUtc ? String(actualizadoUtc).replace("T"," ").substring(0,16) : "--";
+
+          tablaResultados.innerHTML = `
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+              <div class="small-muted">Dimensión: <b>${escapeHtml(dimension)}</b></div>
+              <div class="small-muted">Actualizado (UTC): <b>${escapeHtml(utc)}</b></div>
+            </div>
+
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>${escapeHtml(dimension)}</th>
+                  <th>Opción</th>
+                  <th class="text-right">Votos</th>
+                </tr>
+              </thead>
+              <tbody>${filas}</tbody>
+            </table>
+          `;
+        }
+
+        // --- DEMO de “Distribución” (solo UI) ---
+        function renderDistribucionDemo(){
+          const total = resultadosDemo.candidatoA + resultadosDemo.candidatoB + resultadosDemo.blanco;
+          const a = Math.round((resultadosDemo.candidatoA/total)*100);
+          const b = Math.round((resultadosDemo.candidatoB/total)*100);
+          const bl = Math.max(0, 100 - a - b);
+
+          document.getElementById("totalVotos").textContent = resultadosDemo.totalVotos.toLocaleString("es-EC");
+          document.getElementById("juntasReportadas").textContent = resultadosDemo.juntasReportadas.toLocaleString("es-EC");
+
+          document.getElementById("aPct").textContent = a + "%";
+          document.getElementById("bPct").textContent = b + "%";
+          document.getElementById("blPct").textContent = bl + "%";
+
+          document.getElementById("aBar").style.width = a + "%";
+          document.getElementById("bBar").style.width = b + "%";
+          document.getElementById("blBar").style.width = bl + "%";
+        }
+
+        // --- Cargar reporte real desde MVC (/Resultados/Data) ---
+        async function cargarReporte(){
+          if(proceso.estado !== "FINALIZADO") return;
+
+          const dim = (dimensionSelect?.value || "Provincia");
+          tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
+
+          try{
+            const res = await fetch(`/Resultados/Data?dimension=${encodeURIComponent(dim)}`);
+            const data = await res.json();
+
+            if(!data.ok){
+              tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
+              return;
+            }
+
+            renderTabla(data.dimension, data.actualizadoUtc, data.items);
+
+          }catch(err){
+            tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
+          }
+        }
 
         function renderProceso(){
           rango.textContent = `${proceso.inicio} — ${proceso.fin}`;
-          const finalizado = (proceso.estado === "FINALIZADO");
 
-          if(finalizado){
-            estadoPill.className = "pill pill-ok";
-            estadoPill.textContent = "Finalizado";
-            estadoMsg.textContent = "Resultados publicados.";
-            bloqueEnProceso.style.display = "none";
-            bloqueFinalizado.style.display = "block";
-
-            document.getElementById("totalVotos").textContent = resultadosDemo.totalVotos.toLocaleString("es-EC");
-            document.getElementById("juntasReportadas").textContent = resultadosDemo.juntasReportadas.toLocaleString("es-EC");
-
-            const total = resultadosDemo.candidatoA + resultadosDemo.candidatoB + resultadosDemo.blanco;
-            const a = Math.round((resultadosDemo.candidatoA/total)*100);
-            const b = Math.round((resultadosDemo.candidatoB/total)*100);
-            const bl = Math.max(0, 100 - a - b);
-
-            document.getElementById("aPct").textContent = a + "%";
-            document.getElementById("bPct").textContent = b + "%";
-            document.getElementById("blPct").textContent = bl + "%";
-
-            document.getElementById("aBar").style.width = a + "%";
-            document.getElementById("bBar").style.width = b + "%";
-            document.getElementById("blBar").style.width = bl + "%";
+          if(proceso.estado === "FINALIZADO"){
+            setFinalizado();
+            renderDistribucionDemo();
+            cargarReporte();
           }else{
-            estadoPill.className = "pill pill-warn";
-            estadoPill.textContent = "En proceso";
-            estadoMsg.textContent = "Proceso electoral en proceso; resultados no visibles todavía.";
-            bloqueEnProceso.style.display = "block";
-            bloqueFinalizado.style.display = "none";
+            setEnProceso();
           }
         }
 
@@ -214,35 +316,15 @@
           renderProceso();
         });
 
-        // --- Recintos ---
-        const lista = document.getElementById("listaRecintos");
-        const q = document.getElementById("qRecinto");
-        const mapFrame = document.getElementById("mapFrame");
-
-        function renderRecintos(){
-          const term = (q.value || "").toLowerCase().trim();
-          const items = recintos.filter(r => (`${r.provincia} ${r.canton} ${r.nombre}`.toLowerCase()).includes(term));
-
-          lista.innerHTML = items.map((r, idx)=>`
-            <button class="btn btn-outline-primary btn-block text-left mb-2" data-idx="${idx}">
-              <div class="font-weight-bold">${r.nombre}</div>
-              <div class="small-muted">${r.provincia} • ${r.canton}</div>
-            </button>
-          `).join("") || `<div class="small-muted">No se encontraron recintos con ese criterio.</div>`;
-
-          [...lista.querySelectorAll("button[data-idx]")].forEach(btn=>{
-            btn.addEventListener("click", ()=>{
-              const index = parseInt(btn.getAttribute("data-idx"), 10);
-              const r = items[index];
-              mapFrame.src = `https://www.google.com/maps?q=${r.lat},${r.lng}&z=14&output=embed`;
-            });
+        if(dimensionSelect){
+          dimensionSelect.addEventListener("change", ()=> {
+            if(proceso.estado === "FINALIZADO") cargarReporte();
           });
         }
 
-        q.addEventListener("input", renderRecintos); 
-
         // init
         renderProceso();
-        renderRecintos();
     </script>
 }
+
+

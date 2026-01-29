@@ -1,0 +1,34 @@
+﻿@model VotantesConfirmarVm
+@{
+    ViewData["Title"] = "Confirmar voto";
+}
+
+<h2>Confirmar voto</h2>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+
+<div class="alert alert-info">
+    <b>Resumen:</b> @Model.Resumen
+</div>
+
+<form method="post" asp-action="Emitir">
+    <input type="hidden" asp-for="ProcesoElectoralId" />
+    <input type="hidden" asp-for="EleccionId" />
+    <input type="hidden" asp-for="TipoEleccion" />
+
+    <input type="hidden" asp-for="OpcionPresidente" />
+    <input type="hidden" asp-for="PartidoListaId" />
+
+    @for (int i = 0; i < Model.CandidatoIds.Count; i++)
+    {
+        <input type="hidden" name="CandidatoIds[@i]" value="@Model.CandidatoIds[i]" />
+    }
+
+    <button class="btn btn-success">Emitir voto</button>
+    <a asp-action="Papeleta" class="btn btn-outline-secondary">Volver</a>
+</form>
+
+

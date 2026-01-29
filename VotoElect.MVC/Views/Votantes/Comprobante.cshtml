@@ -1,0 +1,27 @@
+﻿@model VotantesComprobanteVm
+@{
+    ViewData["Title"] = "Comprobante";
+}
+
+<h2>Voto registrado</h2>
+
+<div class="alert alert-success">
+    @Model.Mensaje
+</div>
+
+@if (Model.PapeletaEnviada)
+{
+    <div class="alert alert-info">
+        Papeleta enviada a: <b>@Model.EmailEnmascarado</b>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        No se pudo enviar la papeleta por correo (puedes revisar configuración de Brevo).
+    </div>
+}
+
+<a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Finalizar</a>
+
+

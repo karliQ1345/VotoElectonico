@@ -1,0 +1,148 @@
+﻿@model VotoElect.MVC.ViewModels.JefePanelVm
+@{
+    ViewData["Title"] = "Jefe de Junta";
+    var ver = Model.Verificacion;
+}
+
+<div class="container py-4">
+    <h2 class="mb-3">Jefe de Junta</h2>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Ok))
+    {
+        <div class="alert alert-success">@Model.Ok</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="alert alert-danger">@Model.Error</div>
+    }
+
+    <div class="row g-3">
+
+        <!-- Columna izquierda: Junta + acciones -->
+        <div class="col-lg-5">
+
+            <div class="p-4 card-soft">
+                <h4 class="mb-3">Datos de la Junta</h4>
+
+                @if (Model.Panel != null)
+                {
+                    <p class="mb-1"><b>Código:</b> @Model.Panel.JuntaCodigo</p>
+                    <p class="mb-1"><b>Provincia:</b> @Model.Panel.Provincia</p>
+                    <p class="mb-1"><b>Cantón:</b> @Model.Panel.Canton</p>
+                    <p class="mb-1"><b>Parroquia:</b> @Model.Panel.Parroquia</p>
+
+                    <span class="pill @(Model.Panel.ProcesoActivo ? "pill-ok" : "pill-warn")">
+                        @(Model.Panel.ProcesoActivo ? "Proceso ACTIVO" : "Proceso NO activo")
+                    </span>
+
+                    <hr />
+
+                    <!-- Jefe vota sin pedir código -->
+                    <form asp-action="Votar" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-secondary w-100 font-weight-bold">
+                            <i class="fas fa-vote-yea mr-2"></i>Ir a votar (Jefe)
+                        </button>
+                    </form>
+
+                    <div class="small-muted mt-2">
+                        Este botón inicia la votación del jefe sin pedir código en pantalla.
+                    </div>
+                }
+                else
+                {
+                    <div class="small-muted">No se pudo cargar la información de la junta.</div>
+                }
+            </div>
+
+            <div class="p-4 card-soft mt-3">
+                <h4 class="mb-3">Verificar votante</h4>
+
+                <form asp-action="Verificar" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="font-weight-bold">Cédula del votante</label>
+                        <input name="cedulaVotante"
+                               class="form-control"
+                               maxlength="10"
+                               placeholder="0102030405"
+                               required />
+                    </div>
+
+                    <button class="btn btn-primary w-100 font-weight-bold">
+                        <i class="fas fa-user-check mr-2"></i>Verificar y generar código
+                    </button>
+                </form>
+
+                <div class="small-muted mt-2">
+                    Si está permitido, el sistema mostrará un código único para entregar físicamente al votante.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Columna derecha: resultado verificación -->
+        <div class="col-lg-7">
+            <div class="p-4 card-soft">
+                <h4 class="mb-3">Resultado de verificación</h4>
+
+                @if (ver == null)
+                {
+                    <div class="small-muted">Aún no has verificado a ningún votante.</div>
+                }
+                else
+                {
+                    <div class="alert @(ver.Permitido ? "alert-success" : "alert-warning")">
+                        @ver.Mensaje
+                    </div>
+
+                    @if (ver.Votante != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                                    <div class="small-muted mb-2">Foto</div>
+                                    @if (!string.IsNullOrWhiteSpace(ver.Votante.FotoUrl))
+                                    {
+                                        <img src="@ver.Votante.FotoUrl" class="img-fluid" style="border-radius:14px;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="small-muted">Sin foto</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <p class="mb-1"><b>Cédula:</b> @ver.Votante.Cedula</p>
+                                <p class="mb-1"><b>Nombre:</b> @ver.Votante.NombreCompleto</p>
+                                <p class="mb-1"><b>Género:</b> @ver.Votante.Genero</p>
+                                <p class="mb-1"><b>Teléfono:</b> @ver.Votante.Telefono</p>
+                                <p class="mb-1"><b>Email:</b> @ver.Votante.Email</p>
+                                <p class="mb-1"><b>Ya votó:</b> @(ver.Votante.YaVoto ? "Sí" : "No")</p>
+                            </div>
+                        </div>
+                    }
+
+                    @if (ver.Permitido && !string.IsNullOrWhiteSpace(ver.CodigoUnico))
+                    {
+                        <hr />
+                        <div class="alert alert-info" style="border-radius:14px;">
+                            <div class="font-weight-bold mb-1">Código único (entregar al votante)</div>
+                            <div style="font-size:2rem; letter-spacing:6px;" class="mono">@ver.CodigoUnico</div>
+                            <div class="small-muted mt-2">
+                                El votante debe ingresar este código en la pantalla de votación (en otra computadora).
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+

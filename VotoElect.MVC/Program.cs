@@ -22,16 +22,16 @@ namespace VotoElect.MVC
             });
 
             // HttpClient para la API
-            var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:5001/";
+            var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7120/";
             builder.Services.AddHttpClient("Api", c =>
             {
                 c.BaseAddress = new Uri(apiBase);
             });
 
-            //builder.Services.ConfigureHttpJsonOptions(opts =>
-            //{
-            //    opts.SerializerOptions.PropertyNameCaseInsensitive = true;
-            //});
+            builder.Services.ConfigureHttpJsonOptions(opts =>
+            {
+                opts.SerializerOptions.PropertyNameCaseInsensitive = true;
+            });
 
 
             // Registrar ApiService en DI

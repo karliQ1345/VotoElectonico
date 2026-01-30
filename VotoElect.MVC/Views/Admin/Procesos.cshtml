@@ -4,7 +4,15 @@
 }
 
 <div class="container py-4">
-    <h2 class="mb-3">Procesos Electorales</h2>
+   <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Procesos Electorales</h2>
+
+    <a class="btn btn-outline-primary"
+       asp-controller="Admin"
+       asp-action="Padron">
+        Cargar Padrón (Excel)
+    </a>
+</div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Ok))
     {

@@ -1,50 +1,116 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Microsoft.AspNetCore.Http
+@using VotoElect.MVC.Services
+
+@{
+    var token = Context.Session.GetString(SessionKeys.Token);
+    var rol = Context.Session.GetString(SessionKeys.Rol);
+    var cedula = Context.Session.GetString("cedula");
+}
+
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - VotoElectronico.MVC</title>
+    <title>@ViewData["Title"] - VotoElect.MVC</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/VotoElectronico.MVC.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/VotoElect.MVC.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">VotoElectronico.MVC</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">VotoElect.MVC</a>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - VotoElectronico.MVC - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+
+                <ul class="navbar-nav flex-grow-1">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
+                    </li>
+
+                    @* ========= MENÚ POR ROL (sesión/token) ========= *@
+                    @if (!string.IsNullOrWhiteSpace(token))
+                    {
+                        @* ADMIN *@
+                        @if (rol == "Administrador")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Admin" asp-action="Procesos">Procesos</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Admin" asp-action="Padron">Cargar Padrón</a>
+                            </li>
+                        }
+
+                        @* JEFE JUNTA *@
+                        @if (rol == "JefeJunta")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="JefeJunta" asp-action="Panel">Panel Junta</a>
+                            </li>
+                        }
+
+                        @* VOTANTE *@
+                        @if (rol == "Votante")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Votantes" asp-action="Codigo">Votar</a>
+                            </li>
+                        }
+                    }
+                </ul>
+
+                <ul class="navbar-nav">
+                    @* ========= ZONA DERECHA ========= *@
+                    @if (string.IsNullOrWhiteSpace(token))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Acceso" asp-action="Index">Iniciar sesión</a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link text-muted">
+                                @(!string.IsNullOrWhiteSpace(cedula) ? $"Cédula: {cedula}" : $"Rol: {rol}")
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Acceso" asp-action="Logout">Salir</a>
+                        </li>
+                    }
+
+                    @* <partial name="_LoginPartial" /> *@
+                </ul>
+
+            </div>
         </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    </nav>
+</header>
+
+<div class="container">
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+</div>
+
+<footer class="border-top footer text-muted">
+    <div class="container">
+        &copy; @DateTime.Now.Year - VotoElect.MVC
+    </div>
+</footer>
+
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

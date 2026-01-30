@@ -106,6 +106,15 @@ public async Task<ApiResponse<ReporteResponseDto>?> GetReporteAsync(ReporteFiltr
     var resp = await Client().PostAsJsonAsync("api/reportes", filtro, ct);
     return await resp.Content.ReadFromJsonAsync<ApiResponse<ReporteResponseDto>>(cancellationToken: ct);
 }
+    public async Task<ApiResponse<CargaPadronResponseDto>?> AdminCargarPadronAsync(
+    string procesoId, List<PadronExcelRowDto> rows, string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, $"api/padron/{procesoId}/carga");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        msg.Content = JsonContent.Create(rows);
+        var resp = await Client().SendAsync(msg, ct);
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<CargaPadronResponseDto>>(cancellationToken: ct);
+    }
 
 }
 

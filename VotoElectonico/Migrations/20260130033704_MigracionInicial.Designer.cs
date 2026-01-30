@@ -12,7 +12,7 @@ using VotoElectonico.Data;
 namespace VotoElectonico.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260130032318_MigracionInicial")]
+    [Migration("20260130033704_MigracionInicial")]
     partial class MigracionInicial
     {
         /// <inheritdoc />

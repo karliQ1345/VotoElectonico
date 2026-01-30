@@ -1,0 +1,62 @@
+﻿@model VotoElect.MVC.ViewModels.AdminPadronVm
+@{
+    ViewData["Title"] = "Cargar Padrón (Excel)";
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Cargar Padrón (Excel)</h2>
+        <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="Procesos">Volver</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Ok))
+    {
+        <div class="alert alert-success">@Model.Ok</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="alert alert-danger">@Model.Error</div>
+    }
+
+    <div class="p-4 card-soft">
+        <h4 class="mb-3">Subir archivo</h4>
+
+        <form asp-controller="Admin" asp-action="CargarPadron" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="font-weight-bold">Proceso electoral</label>
+                    <select class="form-select" asp-for="ProcesoElectoralId" required>
+                        <option value="">-- Selecciona un proceso --</option>
+                        @foreach (var p in Model.Procesos)
+                        {
+                            <option value="@p.ProcesoElectoralId">@p.Nombre</option>
+                        }
+                    </select>
+                    <div class="small-muted mt-1">Selecciona el proceso al que pertenece este padrón.</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="font-weight-bold">Archivo Excel</label>
+                    <input class="form-control" type="file" name="excel" accept=".xlsx,.xls" required />
+                    <div class="small-muted mt-1">
+                        Columna Rol: “Jefe de Junta” o vacío → se toma como Votante.
+                    </div>
+                </div>
+<div class="col-12">
+                    <button class="btn btn-primary">Cargar</button>
+                    <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="Padron">Limpiar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ResultJson))
+    {
+        <div class="p-4 card-soft mt-3">
+            <h4 class="mb-3">Resultado</h4>
+            <pre class="mb-0" style="white-space: pre-wrap;">@Model.ResultJson</pre>
+        </div>
+    }
+</div>

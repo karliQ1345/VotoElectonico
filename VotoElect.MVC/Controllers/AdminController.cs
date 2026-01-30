@@ -92,6 +92,53 @@ public class AdminController : Controller
 
         return View();
     }
+    [HttpGet]
+    public async Task<IActionResult> Padron(CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token)) return RedirectToAction("Index", "Acceso");
+
+        var vm = new AdminPadronVm();
+
+        var procesos = await _api.AdminListarProcesosAsync(token, ct);
+        vm.Procesos = procesos?.Data ?? new();
+
+        if (TempData["ok"] is string ok) vm.Ok = ok;
+        if (TempData["err"] is string err) vm.Error = err;
+        if (TempData["padron_result"] is string json) vm.ResultJson = json;
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CargarPadron(AdminPadronVm form, IFormFile excel, CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token)) return RedirectToAction("Index", "Acceso");
+
+        if (string.IsNullOrWhiteSpace(form.ProcesoElectoralId))
+        {
+            TempData["err"] = "Seleccione un proceso.";
+            return RedirectToAction(nameof(Padron));
+        }
+        if (excel == null || excel.Length == 0)
+        {
+            TempData["err"] = "Seleccione un archivo Excel.";
+            return RedirectToAction(nameof(Padron));
+        }
+
+        // 1) Excel -> List<PadronExcelRowDto>
+        var rows = ExcelPadronParser.Leer(excel.OpenReadStream()); // helper (abajo)
+
+        // 2) Enviar JSON a la API
+        var resp = await _api.AdminCargarPadronAsync(form.ProcesoElectoralId, rows, token, ct);
+
+        TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo cargar padrón.";
+        if (resp?.Data != null) TempData["padron_result"] = System.Text.Json.JsonSerializer.Serialize(resp.Data);
+
+        return RedirectToAction(nameof(Padron));
+    }
 
 }
 

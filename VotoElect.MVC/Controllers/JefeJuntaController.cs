@@ -9,12 +9,10 @@ namespace VotoElect.MVC.Controllers;
 public class JefeJuntaController : Controller
 {
     private readonly ApiService _api;
-    private readonly IConfiguration _cfg;
 
-    public JefeJuntaController(ApiService api, IConfiguration cfg)
+    public JefeJuntaController(ApiService api)
     {
         _api = api;
-        _cfg = cfg;
     }
 
     private string? Token() => HttpContext.Session.GetString(SessionKeys.Token);
@@ -27,14 +25,17 @@ public class JefeJuntaController : Controller
         if (string.IsNullOrWhiteSpace(token))
             return RedirectToAction("Index", "Acceso");
 
-        var procesoId = _cfg["Votacion:ProcesoElectoralId"] ?? "";
-        var vm = new JefePanelVm { ProcesoElectoralId = procesoId };
+        var vm = new JefePanelVm();
 
-        if (string.IsNullOrWhiteSpace(procesoId))
+        var proc = await _api.GetProcesoActivoAsync(token, ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
         {
-            vm.Error = "Configura Votacion:ProcesoElectoralId en appsettings.json";
+            vm.Error = proc?.Message ?? "No se pudo obtener el proceso activo.";
             return View(vm);
         }
+
+        var procesoId = proc.Data.ProcesoElectoralId;
+        vm.ProcesoElectoralId = procesoId;
 
         var p = await _api.GetJefePanelAsync(procesoId, token, ct);
         if (p == null || !p.Ok || p.Data == null)
@@ -47,7 +48,10 @@ public class JefeJuntaController : Controller
 
         if (TempData["verif_json"] is string json && !string.IsNullOrWhiteSpace(json))
         {
-            vm.Verificacion = JsonSerializer.Deserialize<JefeVerificarVotanteResponseDto>(json);
+            vm.Verificacion = JsonSerializer.Deserialize<JefeVerificarVotanteResponseDto>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
         }
 
         return View(vm);
@@ -61,12 +65,14 @@ public class JefeJuntaController : Controller
         if (string.IsNullOrWhiteSpace(token))
             return RedirectToAction("Index", "Acceso");
 
-        var procesoId = _cfg["Votacion:ProcesoElectoralId"] ?? "";
-        if (string.IsNullOrWhiteSpace(procesoId))
+        var proc = await _api.GetProcesoActivoAsync(token, ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
         {
-            TempData["err"] = "Configura Votacion:ProcesoElectoralId en appsettings.json";
+            TempData["err"] = proc?.Message ?? "No se pudo obtener el proceso activo.";
             return RedirectToAction(nameof(Panel));
         }
+
+        var procesoId = proc.Data.ProcesoElectoralId;
 
         var ced = (cedulaVotante ?? "").Trim();
         if (string.IsNullOrWhiteSpace(ced))
@@ -87,14 +93,12 @@ public class JefeJuntaController : Controller
             return RedirectToAction(nameof(Panel));
         }
 
-        // Guardar resultado para mostrarlo en Panel
         TempData["verif_json"] = JsonSerializer.Serialize(resp.Data);
         TempData["ok"] = resp.Data.Mensaje;
 
         return RedirectToAction(nameof(Panel));
     }
 
-    // Jefe vota sin pedir código en pantalla
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Votar(CancellationToken ct)
@@ -105,14 +109,15 @@ public class JefeJuntaController : Controller
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(cedula))
             return RedirectToAction("Index", "Acceso");
 
-        var procesoId = _cfg["Votacion:ProcesoElectoralId"] ?? "";
-        if (string.IsNullOrWhiteSpace(procesoId))
+        var proc = await _api.GetProcesoActivoAsync(token, ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
         {
-            TempData["err"] = "Configura Votacion:ProcesoElectoralId en appsettings.json";
+            TempData["err"] = proc?.Message ?? "No se pudo obtener el proceso activo.";
             return RedirectToAction(nameof(Panel));
         }
 
-        // 1) Generar código (sin mostrarlo al jefe como entrada)
+        var procesoId = proc.Data.ProcesoElectoralId;
+
         var ver = await _api.JefeVerificarAsync(new JefeVerificarVotanteRequestDto
         {
             ProcesoElectoralId = procesoId,
@@ -127,7 +132,6 @@ public class JefeJuntaController : Controller
 
         var codigo = ver.Data.CodigoUnico;
 
-        // 2) Iniciar votación
         var ini = await _api.IniciarVotacionAsync(new IniciarVotacionRequestDto
         {
             ProcesoElectoralId = procesoId,
@@ -141,13 +145,8 @@ public class JefeJuntaController : Controller
             return RedirectToAction(nameof(Panel));
         }
 
-        // 3) Guardar código en sesión para emitir voto
         HttpContext.Session.SetString(SessionKeys.CodigoUnico, codigo);
 
         return RedirectToAction("Papeleta", "Votantes");
     }
 }
-
-
-
-

@@ -94,16 +94,19 @@ public class AccesoController : Controller
         
         HttpContext.Session.Remove(SessionKeys.TwoFactorSessionId);
 
-        var redirect = resp.Data.Redirect ?? "";
-        if (!string.IsNullOrWhiteSpace(redirect) && redirect.StartsWith("/"))
-            return Redirect(redirect);
+        var rol = (resp.Data.RolPrincipal ?? "").Trim();
 
-        if (resp.Data.RolPrincipal == "Administrador")
+        if (rol.Equals("Administrador", StringComparison.OrdinalIgnoreCase) ||
+            rol.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
             return RedirectToAction("Procesos", "Admin");
+        }
 
-        if (resp.Data.RolPrincipal == "JefeJunta")
+        if (rol.Equals("JefeJunta", StringComparison.OrdinalIgnoreCase) ||
+            rol.Equals("Jefe de Junta", StringComparison.OrdinalIgnoreCase))
+        {
             return RedirectToAction("Panel", "JefeJunta");
-
+        }
         return RedirectToAction("Index", "Home");
     }
 

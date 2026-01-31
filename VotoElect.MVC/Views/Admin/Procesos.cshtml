@@ -4,15 +4,7 @@
 }
 
 <div class="container py-4">
-   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="mb-0">Procesos Electorales</h2>
-
-    <a class="btn btn-outline-primary"
-       asp-controller="Admin"
-       asp-action="Padron">
-        Cargar Padrón (Excel)
-    </a>
-</div>
+    <h2 class="mb-3">Procesos Electorales</h2>
 
     @if (!string.IsNullOrWhiteSpace(Model.Ok))
     {
@@ -62,6 +54,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Estado</th>
+                                <th>Padrón</th>
                                 <th>Ventana</th>
                                 <th class="text-end">Acciones</th>
                             </tr>
@@ -69,15 +62,46 @@
                         <tbody>
                             @foreach (var p in Model.Procesos)
                             {
+                                var sinPadron = !p.PadronCargado;
+
                                 <tr>
-                                    <td>@p.Nombre</td>
+                                    <td>
+                                        <div>@p.Nombre</div>
+                                        <div class="text-muted small">@p.ProcesoElectoralId</div>
+                                    </td>
                                     <td>@p.Estado</td>
+
+                                    <td>
+                                        @if (p.PadronCargado)
+                                        {
+                                            <span class="pill pill-ok">Cargado (@p.PadronTotal)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pill pill-warn">Sin padrón</span>
+                                        }
+                                    </td>
+
                                     <td>@p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")</td>
+
                                     <td class="text-end">
+                                        <!-- ✅ Padrón por proceso -->
+                                        <a class="btn btn-outline-primary btn-sm"
+                                           asp-controller="Admin"
+                                           asp-action="Padron"
+                                           asp-route-procesoId="@p.ProcesoElectoralId">
+                                            Padrón
+                                        </a>
+
                                         <form asp-action="Activar" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
-                                            <button type="submit" class="btn btn-outline-dark btn-sm">Activar</button>
+
+                                            <button type="submit"
+                                                    class="btn btn-outline-dark btn-sm"
+                                                    @(sinPadron ? "disabled title=\"Cargue el padrón antes de activar\"" : "")>
+                                                Activar
+                                            </button>
                                         </form>
 
                                         <form asp-action="Finalizar" method="post" class="d-inline">
@@ -94,6 +118,8 @@
 
                 <div class="small-muted">
                     Activar cambia a <b>Activo</b>. Finalizar cambia a <b>Finalizado</b>.
+                    <br />
+                    *Activar se habilita solo cuando el padrón está cargado (y la API también lo valida).
                 </div>
             </div>
         </div>

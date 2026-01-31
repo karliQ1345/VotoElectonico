@@ -47,6 +47,15 @@ public class AdminController : Controller
             return RedirectToAction(nameof(Procesos));
         }
 
+        var inicioUtc = DateTime.SpecifyKind(form.InicioUtc, DateTimeKind.Local).ToUniversalTime();
+        var finUtc = DateTime.SpecifyKind(form.FinUtc, DateTimeKind.Local).ToUniversalTime();
+
+        if (finUtc <= inicioUtc)
+        {
+            TempData["err"] = "Fin debe ser mayor que Inicio.";
+            return RedirectToAction(nameof(Procesos));
+        }
+
         var resp = await _api.AdminCrearProcesoAsync(new()
         {
             Nombre = form.Nombre.Trim(),
@@ -94,15 +103,19 @@ public class AdminController : Controller
         return View();
     }
     [HttpGet]
-    public async Task<IActionResult> Padron(CancellationToken ct)
+    public async Task<IActionResult> Padron(string? procesoId, CancellationToken ct)
     {
         var token = Token();
-        if (string.IsNullOrWhiteSpace(token)) return RedirectToAction("Index", "Acceso");
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
 
         var vm = new AdminPadronVm();
 
         var procesos = await _api.AdminListarProcesosAsync(token, ct);
         vm.Procesos = procesos?.Data ?? new();
+
+        if (!string.IsNullOrWhiteSpace(procesoId))
+            vm.ProcesoElectoralId = procesoId;
 
         if (TempData["ok"] is string ok) vm.Ok = ok;
         if (TempData["err"] is string err) vm.Error = err;

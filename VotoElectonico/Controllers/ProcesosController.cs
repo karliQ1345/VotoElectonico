@@ -18,20 +18,36 @@ namespace VotoElectonico.Controllers
         private readonly ApplicationDbContext _db;
         public ProcesosController(ApplicationDbContext db) => _db = db;
 
+        [Authorize(Roles = nameof(RolTipo.Administrador))]
         [HttpPost]
         public async Task<ActionResult<ApiResponse<IdResponseDto>>> Crear([FromBody] CrearProcesoRequestDto req, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(req.Nombre))
                 return BadRequest(ApiResponse<IdResponseDto>.Fail("Nombre requerido."));
-            if (req.FinUtc <= req.InicioUtc)
+
+            var inicioUtc = req.InicioUtc.Kind switch
+            {
+                DateTimeKind.Utc => req.InicioUtc,
+                DateTimeKind.Local => req.InicioUtc.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(req.InicioUtc, DateTimeKind.Utc) // Unspecified => asumimos UTC
+            };
+
+            var finUtc = req.FinUtc.Kind switch
+            {
+                DateTimeKind.Utc => req.FinUtc,
+                DateTimeKind.Local => req.FinUtc.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(req.FinUtc, DateTimeKind.Utc)
+            };
+
+            if (finUtc <= inicioUtc)
                 return BadRequest(ApiResponse<IdResponseDto>.Fail("FinUtc debe ser mayor a InicioUtc."));
 
             var p = new ProcesoElectoral
             {
                 Id = Guid.NewGuid(),
                 Nombre = req.Nombre.Trim(),
-                InicioUtc = req.InicioUtc,
-                FinUtc = req.FinUtc,
+                InicioUtc = inicioUtc,
+                FinUtc = finUtc,
                 Estado = ProcesoEstado.Pendiente,
                 CreadoUtc = DateTime.UtcNow
             };
@@ -53,13 +69,15 @@ namespace VotoElectonico.Controllers
                     Nombre = x.Nombre,
                     Estado = x.Estado.ToString(),
                     InicioUtc = x.InicioUtc,
-                    FinUtc = x.FinUtc
+                    FinUtc = x.FinUtc,
+                    PadronCargado = _db.PadronRegistros.Any(pr => pr.ProcesoElectoralId == x.Id)
                 })
                 .ToListAsync(ct);
 
             return Ok(ApiResponse<List<ProcesoResumenDto>>.Success(list));
         }
 
+        [Authorize(Roles = nameof(RolTipo.Administrador))]
         [HttpPost("{procesoId:guid}/activar")]
         public async Task<ActionResult<ApiResponse<string>>> Activar(Guid procesoId, CancellationToken ct)
         {
@@ -69,12 +87,17 @@ namespace VotoElectonico.Controllers
             if (p.Estado == ProcesoEstado.Finalizado)
                 return BadRequest(ApiResponse<string>.Fail("No se puede activar un proceso finalizado."));
 
+            var tienePadron = await _db.PadronRegistros.AnyAsync(x => x.ProcesoElectoralId == procesoId, ct);
+            if (!tienePadron)
+                return BadRequest(ApiResponse<string>.Fail("No se puede activar: primero cargue el padrón electoral."));
+
             p.Estado = ProcesoEstado.Activo;
             await _db.SaveChangesAsync(ct);
 
             return Ok(ApiResponse<string>.Success("OK", "Proceso activado."));
         }
 
+        [Authorize(Roles = nameof(RolTipo.Administrador))]
         [HttpPost("{procesoId:guid}/finalizar")]
         public async Task<ActionResult<ApiResponse<string>>> Finalizar(Guid procesoId, CancellationToken ct)
         {
@@ -85,6 +108,33 @@ namespace VotoElectonico.Controllers
             await _db.SaveChangesAsync(ct);
 
             return Ok(ApiResponse<string>.Success("OK", "Proceso finalizado."));
+        }
+
+        [Authorize]
+        [HttpGet("activo")]
+        public async Task<ActionResult<ApiResponse<ProcesoActivoDto>>> GetActivo(CancellationToken ct)
+        {
+            var now = DateTime.UtcNow;
+
+            var p = await _db.ProcesosElectorales
+                .Where(x => x.Estado == ProcesoEstado.Activo
+                         && now >= x.InicioUtc
+                         && now <= x.FinUtc)
+                .OrderByDescending(x => x.CreadoUtc)
+                .Select(x => new ProcesoActivoDto
+                {
+                    ProcesoElectoralId = x.Id.ToString(),
+                    Nombre = x.Nombre,
+                    InicioUtc = x.InicioUtc,
+                    FinUtc = x.FinUtc,
+                    Estado = x.Estado.ToString()
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (p == null)
+                return Ok(ApiResponse<ProcesoActivoDto>.Fail("No hay proceso activo en este momento."));
+
+            return Ok(ApiResponse<ProcesoActivoDto>.Success(p));
         }
     }
 }

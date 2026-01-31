@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using VotoElect.MVC.ApiContracts;
+using VotoElect.MVC.Controllers;
 
 namespace VotoElect.MVC.Services;
 
@@ -44,15 +46,104 @@ public class ApiService
     }
 
     // ---- Jefe de Junta 
-    public async Task<ApiResponse<JefePanelDto>?> GetJefePanelAsync(string procesoId, string token, CancellationToken ct = default)
+    public async Task<ApiResponse<JefePanelDto>?> GetJefePanelAsync(
+       string procesoId, string token, CancellationToken ct = default)
     {
         using var msg = new HttpRequestMessage(HttpMethod.Get, $"api/juntas/panel/{procesoId}");
         msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var resp = await Client().SendAsync(msg, ct);
-        return await resp.Content.ReadFromJsonAsync<ApiResponse<JefePanelDto>>(cancellationToken: ct);
-    }
+        var raw = await resp.Content.ReadAsStringAsync(ct);
 
+        Console.WriteLine($"[GetJefePanel] URL=api/juntas/panel/{procesoId}");
+        Console.WriteLine($"[GetJefePanel] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[GetJefePanel] Body={raw}");
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            return new ApiResponse<JefePanelDto>
+            {
+                Ok = false,
+                Message = "No autorizado (token/rol). Vuelve a iniciar sesión.",
+                Data = null
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new ApiResponse<JefePanelDto>
+            {
+                Ok = false,
+                Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}",
+                Data = null
+            };
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new ApiResponse<JefePanelDto>
+            {
+                Ok = false,
+                Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}",
+                Data = null
+            };
+        }
+
+        // Success: deserializa
+        return System.Text.Json.JsonSerializer.Deserialize<ApiResponse<JefePanelDto>>(
+            raw,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
+    public async Task<ApiResponse<ProcesoActivoDto>?> GetProcesoActivoAsync(string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Get, "api/procesos/activo");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await Client().SendAsync(msg, ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine("[GetProcesoActivo] URL=api/procesos/activo");
+        Console.WriteLine($"[GetProcesoActivo] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[GetProcesoActivo] Body={raw}");
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            return new ApiResponse<ProcesoActivoDto>
+            {
+                Ok = false,
+                Message = "No autorizado (token/rol). Vuelve a iniciar sesión.",
+                Data = null
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new ApiResponse<ProcesoActivoDto>
+            {
+                Ok = false,
+                Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}",
+                Data = null
+            };
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new ApiResponse<ProcesoActivoDto>
+            {
+                Ok = false,
+                Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}",
+                Data = null
+            };
+        }
+
+        return JsonSerializer.Deserialize<ApiResponse<ProcesoActivoDto>>(
+            raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
     public async Task<ApiResponse<JefeVerificarVotanteResponseDto>?> JefeVerificarAsync(JefeVerificarVotanteRequestDto req, string token, CancellationToken ct = default)
     {
         using var msg = new HttpRequestMessage(HttpMethod.Post, "api/juntas/verificar");
@@ -80,7 +171,21 @@ public async Task<ApiResponse<IdResponseDto>?> AdminCrearProcesoAsync(CrearProce
     msg.Content = JsonContent.Create(req);
 
     var resp = await Client().SendAsync(msg, ct);
-    return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine($"[AdminCrearProceso] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[AdminCrearProceso] Body={raw}");
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new ApiResponse<IdResponseDto>
+            {
+                Ok = false,
+                Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}",
+                Data = null
+            };
+        }
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
 }
 
 public async Task<ApiResponse<string>?> AdminActivarProcesoAsync(string procesoId, string token, CancellationToken ct = default)

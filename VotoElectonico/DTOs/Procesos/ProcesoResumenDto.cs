@@ -7,5 +7,6 @@ public class ProcesoResumenDto
     public string Estado { get; set; } = null!;
     public DateTime InicioUtc { get; set; }
     public DateTime FinUtc { get; set; }
+    public bool PadronCargado { get; set; }
 }
 

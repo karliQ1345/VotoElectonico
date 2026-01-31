@@ -22,7 +22,7 @@ namespace VotoElect.MVC
             });
 
             // HttpClient para la API
-            var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7120/";
+            var apiBase = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:5058/";
             builder.Services.AddHttpClient("Api", c =>
             {
                 c.BaseAddress = new Uri(apiBase);

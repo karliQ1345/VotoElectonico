@@ -98,13 +98,13 @@ public class ApiService
     }
     public async Task<ApiResponse<ProcesoActivoDto>?> GetProcesoActivoAsync(string token, CancellationToken ct = default)
     {
-        using var msg = new HttpRequestMessage(HttpMethod.Get, "api/procesos/activo");
+        using var msg = new HttpRequestMessage(HttpMethod.Get, "api/public/procesos/activo");
         msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var resp = await Client().SendAsync(msg, ct);
         var raw = await resp.Content.ReadAsStringAsync(ct);
 
-        Console.WriteLine("[GetProcesoActivo] URL=api/procesos/activo");
+        Console.WriteLine("[GetProcesoActivo] URL=api/public/procesos/activo");
         Console.WriteLine($"[GetProcesoActivo] Status={(int)resp.StatusCode} {resp.StatusCode}");
         Console.WriteLine($"[GetProcesoActivo] Body={raw}");
 
@@ -138,6 +138,26 @@ public class ApiService
                 Data = null
             };
         }
+
+        return JsonSerializer.Deserialize<ApiResponse<ProcesoActivoDto>>(
+            raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
+    public async Task<ApiResponse<ProcesoActivoDto>?> GetProcesoActivoPublicAsync(CancellationToken ct = default)
+    {
+        var resp = await Client().GetAsync("api/public/procesos/activo", ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine("[GetProcesoActivoPublic] URL=api/public/procesos/activo");
+        Console.WriteLine($"[GetProcesoActivoPublic] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[GetProcesoActivoPublic] Body={raw}");
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return new ApiResponse<ProcesoActivoDto> { Ok = false, Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}" };
+
+        if (!resp.IsSuccessStatusCode)
+            return new ApiResponse<ProcesoActivoDto> { Ok = false, Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}" };
 
         return JsonSerializer.Deserialize<ApiResponse<ProcesoActivoDto>>(
             raw,

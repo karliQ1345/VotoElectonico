@@ -29,12 +29,9 @@ public class VotantesController : Controller
     [HttpPost]
     public async Task<IActionResult> Codigo(string codigoPad, CancellationToken ct)
     {
+
         var cedula = CedulaSesion();
         if (cedula == null) return RedirectToAction("Index", "Acceso");
-
-        var procesoId = _cfg["Votacion:ProcesoElectoralId"];
-        if (string.IsNullOrWhiteSpace(procesoId))
-            return BadRequest("Configura Votacion:ProcesoElectoralId en appsettings.json");
 
         var vm = new VotantesCodigoVm { CodigoUnico = codigoPad?.Trim() ?? "" };
         if (string.IsNullOrWhiteSpace(vm.CodigoUnico))
@@ -43,9 +40,24 @@ public class VotantesController : Controller
             return View(vm);
         }
 
+        var proc = await _api.GetProcesoActivoPublicAsync(ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
+        {
+            vm.Error = proc?.Message ?? "No hay proceso activo en este momento.";
+            return View(vm);
+        }
+
+        var procesoId = proc.Data.ProcesoElectoralId;
+
+        if (!Guid.TryParse(procesoId, out _))
+        {
+            vm.Error = $"ProcesoElectoralId inválido (no es GUID): {procesoId}";
+            return View(vm);
+        }
+
         var resp = await _api.IniciarVotacionAsync(new IniciarVotacionRequestDto
         {
-            ProcesoElectoralId = procesoId!,
+            ProcesoElectoralId = procesoId,
             Cedula = cedula,
             CodigoUnico = vm.CodigoUnico
         }, ct);
@@ -62,7 +74,6 @@ public class VotantesController : Controller
             return View(vm);
         }
 
-        // Guardar el código único para emitir voto
         HttpContext.Session.SetString(SessionKeys.CodigoUnico, vm.CodigoUnico);
 
         return RedirectToAction(nameof(Papeleta));
@@ -74,21 +85,58 @@ public class VotantesController : Controller
         if (CedulaSesion() == null) return RedirectToAction("Index", "Acceso");
         if (CodigoSesion() == null) return RedirectToAction(nameof(Codigo));
 
-        var procesoId = _cfg["Votacion:ProcesoElectoralId"];
-        var eleccionId = _cfg["Votacion:EleccionId"];
-        if (string.IsNullOrWhiteSpace(procesoId) || string.IsNullOrWhiteSpace(eleccionId))
-            return BadRequest("Configura Votacion:ProcesoElectoralId y Votacion:EleccionId en appsettings.json");
-
-        var resp = await _api.GetBoletaAsync(procesoId!, eleccionId!, ct);
-        if (resp == null || !resp.Ok || resp.Data == null)
+        var proc = await _api.GetProcesoActivoPublicAsync(ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
         {
-            return View(new VotantesPapeletaVm { Error = resp?.Message ?? "No se pudo cargar la boleta." });
+            return View(new VotantesPapeletaVm
+            {
+                Error = proc?.Message ?? "No hay proceso activo en este momento."
+            });
         }
 
-        return View(new VotantesPapeletaVm { Boleta = resp.Data });
+        var procesoId = proc.Data.ProcesoElectoralId;
+
+        if (!Guid.TryParse(procesoId, out _))
+        {
+            return View(new VotantesPapeletaVm
+            {
+                Error = $"ProcesoElectoralId inválido (no es GUID): {procesoId}"
+            });
+        }
+
+        var eleccionId = _cfg["Votacion:EleccionId"];
+        if (string.IsNullOrWhiteSpace(eleccionId))
+        {
+            return View(new VotantesPapeletaVm
+            {
+                Error = "Configura Votacion:EleccionId en appsettings.json"
+            });
+        }
+
+        if (!Guid.TryParse(eleccionId, out _))
+        {
+            return View(new VotantesPapeletaVm
+            {
+                Error = $"EleccionId inválido (no es GUID): {eleccionId}"
+            });
+        }
+
+        var resp = await _api.GetBoletaAsync(procesoId, eleccionId, ct);
+        if (resp == null || !resp.Ok || resp.Data == null)
+        {
+            return View(new VotantesPapeletaVm
+            {
+                Error = resp?.Message ?? "No se pudo cargar la boleta."
+            });
+        }
+
+        return View(new VotantesPapeletaVm
+        {
+            Boleta = resp.Data
+        });
     }
 
-    [HttpPost]
+        [HttpPost]
     public IActionResult Confirmar(
         string procesoElectoralId,
         string eleccionId,

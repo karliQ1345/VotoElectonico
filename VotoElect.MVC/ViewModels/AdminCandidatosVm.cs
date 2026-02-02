@@ -19,6 +19,8 @@ public class AdminCandidatosVm
     public string ListaCodigo { get; set; } = "";
     public string? ListaLogoUrl { get; set; }
 
+    public string CargaEleccionId { get; set; } = "";
+
     public string CandidatoNombre { get; set; } = "";
     public string? CandidatoCargo { get; set; }
     public string CandidatoFotoUrl { get; set; } = "";

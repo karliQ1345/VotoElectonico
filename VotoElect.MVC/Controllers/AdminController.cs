@@ -38,7 +38,7 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CrearProceso(AdminProcesosVm form, CancellationToken ct)
+    public async Task<IActionResult> CrearProceso(AdminProcesosVm form, bool continuarCandidatos, CancellationToken ct)
     {
         var token = Token();
         if (string.IsNullOrWhiteSpace(token))
@@ -67,6 +67,17 @@ public class AdminController : Controller
         }, token, ct);
 
         TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear proceso.";
+
+        if (resp?.Ok == true && continuarCandidatos && resp.Data != null)
+        {
+            return RedirectToAction(nameof(Candidatos), new
+            {
+                procesoId = resp.Data.Id,
+                tipo = form.TipoProceso,
+                titulo = form.Nombre
+            });
+        }
+
         return RedirectToAction(nameof(Procesos));
     }
 
@@ -108,7 +119,7 @@ public class AdminController : Controller
 
     //--
     [HttpGet]
-    public async Task<IActionResult> Candidatos(CancellationToken ct)
+    public async Task<IActionResult> Candidatos(string? procesoId, string? tipo, string? titulo, CancellationToken ct)
     {
         var token = Token();
         if (string.IsNullOrWhiteSpace(token))
@@ -118,6 +129,13 @@ public class AdminController : Controller
 
         var procesos = await _api.AdminListarProcesosAsync(token, ct);
         vm.Procesos = procesos?.Data ?? new();
+
+        if (!string.IsNullOrWhiteSpace(procesoId))
+            vm.ProcesoElectoralId = procesoId;
+        if (!string.IsNullOrWhiteSpace(tipo))
+            vm.Tipo = tipo;
+        if (!string.IsNullOrWhiteSpace(titulo))
+            vm.Titulo = titulo;
 
         if (TempData["ok"] is string ok) vm.Ok = ok;
         if (TempData["err"] is string err) vm.Error = err;
@@ -195,6 +213,58 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Candidatos));
     }
     //--
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CargarCandidatos(AdminCandidatosVm form, IFormFile excel, CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        if (string.IsNullOrWhiteSpace(form.CargaEleccionId))
+        {
+            TempData["err"] = "Ingrese el EleccionId para la carga masiva.";
+            return RedirectToAction(nameof(Candidatos));
+        }
+        if (excel == null || excel.Length == 0)
+        {
+            TempData["err"] = "Seleccione un archivo Excel.";
+            return RedirectToAction(nameof(Candidatos));
+        }
+
+        var rows = ExcelCandidatosParser.Leer(excel.OpenReadStream());
+        if (rows.Count == 0)
+        {
+            TempData["err"] = "No se encontraron filas válidas en el Excel.";
+            return RedirectToAction(nameof(Candidatos));
+        }
+
+        var okCount = 0;
+        var errorNames = new List<string>();
+
+        foreach (var row in rows)
+        {
+            row.EleccionId = form.CargaEleccionId;
+            var resp = await _api.AdminCrearCandidatoAsync(row, token, ct);
+            if (resp?.Ok == true)
+            {
+                okCount++;
+            }
+            else
+            {
+                errorNames.Add(row.NombreCompleto);
+            }
+        }
+
+        var message = $"Candidatos cargados: {okCount}/{rows.Count}.";
+        if (errorNames.Count > 0)
+            message += $" Fallidos: {string.Join(", ", errorNames)}.";
+
+        TempData[okCount == rows.Count ? "ok" : "err"] = message;
+        return RedirectToAction(nameof(Candidatos));
+    }
+    //-----
+
 
 
     [HttpGet]

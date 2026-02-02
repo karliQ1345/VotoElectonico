@@ -1,0 +1,116 @@
+﻿﻿@model VotoElect.MVC.ViewModels.AdminCandidatosVm
+@{
+    ViewData["Title"] = "Gestionar Candidatos";
+}
+
+<h2>Gestionar Elecciones, Listas y Candidatos</h2>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-danger">@Model.Error</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.Ok))
+{
+    <div class="alert alert-success">@Model.Ok</div>
+}
+
+<div class="row g-4 mt-2">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">1) Crear elección</h5>
+                <form asp-action="CrearEleccion" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Proceso</label>
+                        <select class="form-select" name="ProcesoElectoralId" required>
+                            <option value="">-- Selecciona un proceso --</option>
+                            @foreach (var p in Model.Procesos)
+                            {
+                                <option value="@p.ProcesoElectoralId">@p.Nombre (@p.Estado)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="Tipo" required>
+                            <option value="Presidente_SiNoBlanco">Presidente (SI/NO/BLANCO)</option>
+                            <option value="Asambleistas">Asambleístas</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input class="form-control" name="Titulo" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Máx selección individual (solo Asambleístas)</label>
+                        <input class="form-control" type="number" min="1" name="MaxSeleccionIndividual" />
+                    </div>
+                    <button class="btn btn-primary w-100">Crear elección</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">2) Crear lista</h5>
+                <p class="small text-muted">Necesitas el EleccionId generado en el paso anterior.</p>
+                <form asp-action="CrearLista" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Elección (EleccionId)</label>
+                        <input class="form-control" name="EleccionId" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input class="form-control" name="ListaNombre" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Código</label>
+                        <input class="form-control" name="ListaCodigo" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Logo URL (opcional)</label>
+                        <input class="form-control" name="ListaLogoUrl" />
+                    </div>
+                    <button class="btn btn-primary w-100">Crear lista</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">3) Crear candidato</h5>
+                <p class="small text-muted">EleccionId obligatorio. PartidoListaId es opcional.</p>
+                <form asp-action="CrearCandidato" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Elección (EleccionId)</label>
+                        <input class="form-control" name="EleccionId" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre completo</label>
+                        <input class="form-control" name="CandidatoNombre" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cargo (opcional)</label>
+                        <input class="form-control" name="CandidatoCargo" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Foto URL</label>
+                        <input class="form-control" name="CandidatoFotoUrl" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Partido/Lista Id (opcional)</label>
+                        <input class="form-control" name="CandidatoPartidoListaId" />
+                    </div>
+                    <button class="btn btn-primary w-100">Crear candidato</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

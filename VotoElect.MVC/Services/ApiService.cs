@@ -38,6 +38,11 @@ public class ApiService
         var url = $"api/votacion/boleta?procesoId={procesoId}&eleccionId={eleccionId}";
         return await Client().GetFromJsonAsync<ApiResponse<BoletaDataDto>>(url, ct);
     }
+    public async Task<ApiResponse<BoletaDataDto>?> GetBoletaActivaAsync(string procesoId, CancellationToken ct = default)
+    {
+        var url = $"api/votacion/boleta-activa?procesoId={procesoId}";
+        return await Client().GetFromJsonAsync<ApiResponse<BoletaDataDto>>(url, ct);
+    }
 
     public async Task<ApiResponse<EmitirVotoResponseDto>?> EmitirVotoAsync(EmitirVotoRequestDto req, CancellationToken ct = default)
     {

@@ -29,14 +29,14 @@ namespace VotoElectonico.Controllers
             {
                 DateTimeKind.Utc => req.InicioUtc,
                 DateTimeKind.Local => req.InicioUtc.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(req.InicioUtc, DateTimeKind.Utc) // Unspecified => asumimos UTC
+                _ => DateTime.SpecifyKind(req.InicioUtc, DateTimeKind.Local).ToUniversalTime() // Unspecified => asumimos local
             };
 
             var finUtc = req.FinUtc.Kind switch
             {
                 DateTimeKind.Utc => req.FinUtc,
                 DateTimeKind.Local => req.FinUtc.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(req.FinUtc, DateTimeKind.Utc)
+                _ => DateTime.SpecifyKind(req.FinUtc, DateTimeKind.Local).ToUniversalTime()
             };
 
             if (finUtc <= inicioUtc)

@@ -3,8 +3,15 @@
 
 @{
     var token = Context.Session.GetString(SessionKeys.Token);
+    var tokenAdmin = Context.Session.GetString(SessionKeys.TokenAdmin);
+    var tokenJefe = Context.Session.GetString(SessionKeys.TokenJefe);
+    var tokenVotante = Context.Session.GetString(SessionKeys.TokenVotante);
     var rol = Context.Session.GetString(SessionKeys.Rol);
     var cedula = Context.Session.GetString("cedula");
+    var hasSession = !string.IsNullOrWhiteSpace(token)
+        || !string.IsNullOrWhiteSpace(tokenAdmin)
+        || !string.IsNullOrWhiteSpace(tokenJefe)
+        || !string.IsNullOrWhiteSpace(tokenVotante);
 }
 
 <!DOCTYPE html>
@@ -37,10 +44,10 @@
                     </li>
 
                     @* ========= MENÚ POR ROL (sesión/token) ========= *@
-                    @if (!string.IsNullOrWhiteSpace(token))
+                        @if (hasSession)
                     {
                         @* ADMIN *@
-                        @if (rol == "Administrador")
+                            @if (!string.IsNullOrWhiteSpace(tokenAdmin))
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Admin" asp-action="Procesos">Procesos</a>
@@ -51,7 +58,7 @@
                         }
 
                         @* JEFE JUNTA *@
-                        @if (rol == "JefeJunta")
+                            @if (!string.IsNullOrWhiteSpace(tokenJefe))
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="JefeJunta" asp-action="Panel">Panel Junta</a>
@@ -59,7 +66,7 @@
                         }
 
                         @* VOTANTE *@
-                        @if (rol == "Votante")
+                            @if (!string.IsNullOrWhiteSpace(tokenVotante))
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Votantes" asp-action="Codigo">Votar</a>
@@ -70,7 +77,7 @@
 
                 <ul class="navbar-nav">
                     @* ========= ZONA DERECHA ========= *@
-                    @if (string.IsNullOrWhiteSpace(token))
+                        @if (!hasSession)
                     {
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Acceso" asp-action="Index">Iniciar sesión</a>

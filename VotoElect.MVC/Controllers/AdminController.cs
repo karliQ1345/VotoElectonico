@@ -10,7 +10,9 @@ public class AdminController : Controller
     private readonly ApiService _api;
     public AdminController(ApiService api) => _api = api;
 
-    private string? Token() => HttpContext.Session.GetString(SessionKeys.Token);
+    private string? Token() =>
+         HttpContext.Session.GetString(SessionKeys.TokenAdmin)
+         ?? HttpContext.Session.GetString(SessionKeys.Token);
 
     [HttpGet]
     public async Task<IActionResult> Procesos(CancellationToken ct)
@@ -47,8 +49,8 @@ public class AdminController : Controller
             return RedirectToAction(nameof(Procesos));
         }
 
-        var inicioUtc = DateTime.SpecifyKind(form.InicioUtc, DateTimeKind.Local).ToUniversalTime();
-        var finUtc = DateTime.SpecifyKind(form.FinUtc, DateTimeKind.Local).ToUniversalTime();
+        var inicioUtc = DateTime.SpecifyKind(form.InicioUtc, DateTimeKind.Utc);
+        var finUtc = DateTime.SpecifyKind(form.FinUtc, DateTimeKind.Utc);
 
         if (finUtc <= inicioUtc)
         {
@@ -59,8 +61,8 @@ public class AdminController : Controller
         var resp = await _api.AdminCrearProcesoAsync(new()
         {
             Nombre = form.Nombre.Trim(),
-            InicioUtc = form.InicioUtc,
-            FinUtc = form.FinUtc
+            InicioUtc = inicioUtc,
+            FinUtc = finUtc
         }, token, ct);
 
         TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear proceso.";
@@ -153,7 +155,6 @@ public class AdminController : Controller
 
         return RedirectToAction(nameof(Padron));
     }
-
 }
 
 

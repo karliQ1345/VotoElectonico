@@ -15,7 +15,9 @@ public class JefeJuntaController : Controller
         _api = api;
     }
 
-    private string? Token() => HttpContext.Session.GetString(SessionKeys.Token);
+    private string? Token() =>
+        HttpContext.Session.GetString(SessionKeys.TokenJefe)
+        ?? HttpContext.Session.GetString(SessionKeys.Token);
     private string? Cedula() => HttpContext.Session.GetString(SessionKeys.Cedula);
 
     [HttpGet]

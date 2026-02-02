@@ -176,13 +176,53 @@ public class ApiService
 
     // ---- Admin
     public async Task<ApiResponse<List<ProcesoResumenDto>>?> AdminListarProcesosAsync(string token, CancellationToken ct = default)
-{
-    using var msg = new HttpRequestMessage(HttpMethod.Get, "api/procesos");
-    msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Get, "api/procesos");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-    var resp = await Client().SendAsync(msg, ct);
-    return await resp.Content.ReadFromJsonAsync<ApiResponse<List<ProcesoResumenDto>>>(cancellationToken: ct);
-}
+        var resp = await Client().SendAsync(msg, ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine("[AdminListarProcesos] URL=api/procesos");
+        Console.WriteLine($"[AdminListarProcesos] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[AdminListarProcesos] Body={raw}");
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            return new ApiResponse<List<ProcesoResumenDto>>
+            {
+                Ok = false,
+                Message = "No autorizado (token/rol). Vuelve a iniciar sesión.",
+                Data = null
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new ApiResponse<List<ProcesoResumenDto>>
+            {
+                Ok = false,
+                Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}",
+                Data = null
+            };
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new ApiResponse<List<ProcesoResumenDto>>
+            {
+                Ok = false,
+                Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}",
+                Data = null
+            };
+        }
+
+        return JsonSerializer.Deserialize<ApiResponse<List<ProcesoResumenDto>>>(
+            raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
 
 public async Task<ApiResponse<IdResponseDto>?> AdminCrearProcesoAsync(CrearProcesoRequestDto req, string token, CancellationToken ct = default)
 {
@@ -240,7 +280,6 @@ public async Task<ApiResponse<ReporteResponseDto>?> GetReporteAsync(ReporteFiltr
         var resp = await Client().SendAsync(msg, ct);
         return await resp.Content.ReadFromJsonAsync<ApiResponse<CargaPadronResponseDto>>(cancellationToken: ct);
     }
-
 }
 
 

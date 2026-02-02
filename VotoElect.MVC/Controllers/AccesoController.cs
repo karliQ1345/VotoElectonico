@@ -88,24 +88,32 @@ public class AccesoController : Controller
             return View(vm);
         }
 
-        HttpContext.Session.SetString(SessionKeys.Token, resp.Data.Token ?? "");
-        HttpContext.Session.SetString(SessionKeys.Rol, resp.Data.RolPrincipal ?? "");
+        var token = resp.Data.Token ?? "";
+        var rol = resp.Data.RolPrincipal ?? "";
 
-        
+        HttpContext.Session.SetString(SessionKeys.Token, token);
+        HttpContext.Session.SetString(SessionKeys.Rol, rol);
+
         HttpContext.Session.Remove(SessionKeys.TwoFactorSessionId);
 
-        var rol = (resp.Data.RolPrincipal ?? "").Trim();
+        var rolNormalized = rol.Trim();
 
-        if (rol.Equals("Administrador", StringComparison.OrdinalIgnoreCase) ||
-            rol.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        if (rolNormalized.Equals("Administrador", StringComparison.OrdinalIgnoreCase) ||
+             rolNormalized.Equals("Admin", StringComparison.OrdinalIgnoreCase))
         {
+            HttpContext.Session.SetString(SessionKeys.TokenAdmin, token);
             return RedirectToAction("Procesos", "Admin");
         }
 
-        if (rol.Equals("JefeJunta", StringComparison.OrdinalIgnoreCase) ||
-            rol.Equals("Jefe de Junta", StringComparison.OrdinalIgnoreCase))
+        if (rolNormalized.Equals("JefeJunta", StringComparison.OrdinalIgnoreCase) ||
+           rolNormalized.Equals("Jefe de Junta", StringComparison.OrdinalIgnoreCase))
         {
+            HttpContext.Session.SetString(SessionKeys.TokenJefe, token);
             return RedirectToAction("Panel", "JefeJunta");
+        }
+        if (rolNormalized.Equals("Votante", StringComparison.OrdinalIgnoreCase))
+        {
+            HttpContext.Session.SetString(SessionKeys.TokenVotante, token);
         }
         return RedirectToAction("Index", "Home");
     }

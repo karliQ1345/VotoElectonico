@@ -8,12 +8,9 @@ namespace VotoElect.MVC.Controllers;
 public class VotantesController : Controller
 {
     private readonly ApiService _api;
-    private readonly IConfiguration _cfg;
-
-    public VotantesController(ApiService api, IConfiguration cfg)
+    public VotantesController(ApiService api)
     {
         _api = api;
-        _cfg = cfg;
     }
 
     private string? CedulaSesion() => HttpContext.Session.GetString(SessionKeys.Cedula);
@@ -104,29 +101,12 @@ public class VotantesController : Controller
             });
         }
 
-        var eleccionId = _cfg["Votacion:EleccionId"];
-        if (string.IsNullOrWhiteSpace(eleccionId))
-        {
-            return View(new VotantesPapeletaVm
-            {
-                Error = "Configura Votacion:EleccionId en appsettings.json"
-            });
-        }
-
-        if (!Guid.TryParse(eleccionId, out _))
-        {
-            return View(new VotantesPapeletaVm
-            {
-                Error = $"EleccionId inválido (no es GUID): {eleccionId}"
-            });
-        }
-
-        var resp = await _api.GetBoletaAsync(procesoId, eleccionId, ct);
+        var resp = await _api.GetBoletaActivaAsync(procesoId, ct);
         if (resp == null || !resp.Ok || resp.Data == null)
         {
             return View(new VotantesPapeletaVm
             {
-                Error = resp?.Message ?? "No se pudo cargar la boleta."
+                Error = resp?.Message ?? "No se pudo cargar la boleta activa."
             });
         }
 

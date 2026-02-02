@@ -94,6 +94,25 @@ namespace VotoElectonico.Controllers
                 .FirstOrDefaultAsync(x => x.Id == eleccionId && x.ProcesoElectoralId == procesoId && x.Activa, ct);
 
             if (eleccion == null) return NotFound(ApiResponse<BoletaDataDto>.Fail("Elección no existe o no activa."));
+            return Ok(ApiResponse<BoletaDataDto>.Success(BuildBoletaDto(eleccion, procesoId)));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("boleta-activa")]
+        public async Task<ActionResult<ApiResponse<BoletaDataDto>>> BoletaActiva([FromQuery] Guid procesoId, CancellationToken ct)
+        {
+            var eleccion = await _db.Elecciones
+                .Include(x => x.Listas)
+                .Include(x => x.Candidatos)
+                .FirstOrDefaultAsync(x => x.ProcesoElectoralId == procesoId && x.Activa, ct);
+
+            if (eleccion == null) return NotFound(ApiResponse<BoletaDataDto>.Fail("No hay elección activa para este proceso."));
+
+            return Ok(ApiResponse<BoletaDataDto>.Success(BuildBoletaDto(eleccion, procesoId)));
+        }
+
+        private static BoletaDataDto BuildBoletaDto(Eleccion eleccion, Guid procesoId)
+        {
 
             var dto = new BoletaDataDto
             {
@@ -124,7 +143,7 @@ namespace VotoElectonico.Controllers
                 })
                 .ToList();
 
-            return Ok(ApiResponse<BoletaDataDto>.Success(dto));
+            return dto;
         }
 
         [AllowAnonymous]

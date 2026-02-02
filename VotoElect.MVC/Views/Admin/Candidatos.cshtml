@@ -1,4 +1,4 @@
-﻿﻿ VotoElect.MVC.ViewModels.AdminCandidatosVm
+﻿@model VotoElect.MVC.ViewModels.AdminCandidatosVm
 @{
     ViewData["Title"] = "Gestionar Candidatos";
 }
@@ -19,34 +19,42 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">1) Crear elección</h5>
+
                 <form asp-action="CrearEleccion" method="post">
                     @Html.AntiForgeryToken()
+
                     <div class="mb-3">
                         <label class="form-label">Proceso</label>
-                        <select class="form-select" name="ProcesoElectoralId" required>
+                        <select class="form-select" asp-for="ProcesoElectoralId" required>
                             <option value="">-- Selecciona un proceso --</option>
                             @foreach (var p in Model.Procesos)
                             {
-                                <option value="@p.ProcesoElectoralId">@p.Nombre (@p.Estado)</option>
+                                <option value="@p.ProcesoElectoralId" selected="@(p.ProcesoElectoralId == Model.ProcesoElectoralId)">
+                                    @p.Nombre (@p.Estado)
+                                </option>
                             }
                         </select>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Tipo</label>
-                        <select class="form-select" name="Tipo" required>
-                            <option value="Presidente_SiNoBlanco">Presidente (SI/NO/BLANCO)</option>
+                        <select class="form-select" asp-for="Tipo" required>
+                            <option value="Presidente_SiNoBlanco">Presidentes (SI/NO/BLANCO)</option>
                             <option value="Asambleistas">Asambleístas</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Título</label>
-                        <input class="form-control" name="Titulo" required />
+                        <input class="form-control" asp-for="Titulo" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Máx selección individual (solo Asambleístas)</label>
-                        <input class="form-control" type="number" min="1" name="MaxSeleccionIndividual" />
+                        <input class="form-control" type="number" min="1" asp-for="MaxSeleccionIndividual" />
                     </div>
-                    <button class="btn btn-primary w-100">Crear elección</button>
+
+                    <button class="btn btn-primary w-100" type="submit">Crear elección</button>
                 </form>
             </div>
         </div>
@@ -57,25 +65,31 @@
             <div class="card-body">
                 <h5 class="card-title">2) Crear lista</h5>
                 <p class="small text-muted">Necesitas el EleccionId generado en el paso anterior.</p>
+
                 <form asp-action="CrearLista" method="post">
                     @Html.AntiForgeryToken()
+
                     <div class="mb-3">
                         <label class="form-label">Elección (EleccionId)</label>
-                        <input class="form-control" name="EleccionId" required />
+                        <input class="form-control" asp-for="EleccionId" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
-                        <input class="form-control" name="ListaNombre" required />
+                        <input class="form-control" asp-for="ListaNombre" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Código</label>
-                        <input class="form-control" name="ListaCodigo" required />
+                        <input class="form-control" asp-for="ListaCodigo" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Logo URL (opcional)</label>
-                        <input class="form-control" name="ListaLogoUrl" />
+                        <input class="form-control" asp-for="ListaLogoUrl" />
                     </div>
-                    <button class="btn btn-primary w-100">Crear lista</button>
+
+                    <button class="btn btn-primary w-100" type="submit">Crear lista</button>
                 </form>
             </div>
         </div>
@@ -86,29 +100,68 @@
             <div class="card-body">
                 <h5 class="card-title">3) Crear candidato</h5>
                 <p class="small text-muted">EleccionId obligatorio. PartidoListaId es opcional.</p>
+
                 <form asp-action="CrearCandidato" method="post">
                     @Html.AntiForgeryToken()
+
                     <div class="mb-3">
                         <label class="form-label">Elección (EleccionId)</label>
-                        <input class="form-control" name="EleccionId" required />
+                        <input class="form-control" asp-for="EleccionId" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Nombre completo</label>
-                        <input class="form-control" name="CandidatoNombre" required />
+                        <input class="form-control" asp-for="CandidatoNombre" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Cargo (opcional)</label>
-                        <input class="form-control" name="CandidatoCargo" />
+                        <input class="form-control" asp-for="CandidatoCargo" />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Foto URL</label>
-                        <input class="form-control" name="CandidatoFotoUrl" required />
+                        <input class="form-control" asp-for="CandidatoFotoUrl" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Partido/Lista Id (opcional)</label>
-                        <input class="form-control" name="CandidatoPartidoListaId" />
+                        <input class="form-control" asp-for="CandidatoPartidoListaId" />
                     </div>
-                    <button class="btn btn-primary w-100">Crear candidato</button>
+
+                    <button class="btn btn-primary w-100" type="submit">Crear candidato</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">4) Carga masiva de candidatos</h5>
+                <p class="small text-muted mb-3">
+                    Usa un Excel con columnas: EleccionId, NombreCompleto, Cargo, FotoUrl, PartidoListaId.
+                    La columna EleccionId se reemplazará por el valor ingresado aquí.
+                </p>
+
+                <form asp-action="CargarCandidatos" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Elección (EleccionId)</label>
+                            <input class="form-control" asp-for="CargaEleccionId" required />
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Archivo Excel</label>
+                            <input class="form-control" type="file" name="excel" accept=".xlsx,.xls" required />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-primary mt-3" type="submit">Cargar candidatos</button>
                 </form>
             </div>
         </div>

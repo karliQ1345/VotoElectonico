@@ -39,8 +39,52 @@
                         <input asp-for="FinUtc" type="datetime-local" class="form-control" />
                     </div>
 
-                    <button class="btn btn-primary w-100">Crear</button>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary w-100">Crear</button>
+
+                        <button type="submit"
+                                class="btn btn-outline-primary w-100"
+                                name="continuarCandidatos"
+                                value="true">
+                            Crear y gestionar candidatos
+                        </button>
+                    </div>
                 </form>
+            </div>
+
+            <!-- ✅ BLOQUE SEPARADO: Carga masiva (otro form aparte) -->
+            <div class="mt-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">4) Carga masiva de candidatos</h5>
+                        <a class="btn btn-outline-secondary btn-sm"
+                           asp-controller="Admin"
+                           asp-action="Candidatos"
+                           asp-route-procesoId="@p.ProcesoElectoralId">
+                            Candidatos
+                        </a>
+
+                        <form asp-action="CargarCandidatos" method="post" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Elección (EleccionId)</label>
+                                    <input class="form-control" asp-for="CargaEleccionId" required />
+                                </div>
+
+                                <div class="col-md-8">
+                                    <label class="form-label">Archivo Excel</label>
+                                    <input class="form-control" type="file" name="excel" accept=".xlsx,.xls" required />
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-outline-primary mt-3">
+                                Cargar candidatos
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -69,6 +113,7 @@
                                         <div>@p.Nombre</div>
                                         <div class="text-muted small">@p.ProcesoElectoralId</div>
                                     </td>
+
                                     <td>@p.Estado</td>
 
                                     <td>
@@ -82,10 +127,13 @@
                                         }
                                     </td>
 
-                                    <td>@p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>
+                                        @p.InicioUtc.ToString("yyyy-MM-dd HH:mm")
+                                        —
+                                        @p.FinUtc.ToString("yyyy-MM-dd HH:mm")
+                                    </td>
 
                                     <td class="text-end">
-                                        <!-- ✅ Padrón por proceso -->
                                         <a class="btn btn-outline-primary btn-sm"
                                            asp-controller="Admin"
                                            asp-action="Padron"
@@ -93,10 +141,16 @@
                                             Padrón
                                         </a>
 
+                                        <a class="btn btn-outline-secondary btn-sm"
+                                           asp-controller="Admin"
+                                           asp-action="Candidatos"
+                                           asp-route-procesoId="@p.ProcesoElectoralId">
+                                            Candidatos
+                                        </a>
+
                                         <form asp-action="Activar" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
-
                                             <button type="submit"
                                                     class="btn btn-outline-dark btn-sm"
                                                     @(sinPadron ? "disabled title=\"Cargue el padrón antes de activar\"" : "")>
@@ -125,4 +179,5 @@
         </div>
     </div>
 </div>
+
 

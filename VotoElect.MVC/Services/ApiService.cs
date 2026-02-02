@@ -38,6 +38,7 @@ public class ApiService
         var url = $"api/votacion/boleta?procesoId={procesoId}&eleccionId={eleccionId}";
         return await Client().GetFromJsonAsync<ApiResponse<BoletaDataDto>>(url, ct);
     }
+
     public async Task<ApiResponse<BoletaDataDto>?> GetBoletaActivaAsync(string procesoId, CancellationToken ct = default)
     {
         var url = $"api/votacion/boleta-activa?procesoId={procesoId}";
@@ -101,6 +102,38 @@ public class ApiService
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         );
     }
+
+    //--
+    public async Task<ApiResponse<IdResponseDto>?> AdminCrearEleccionAsync(CrearEleccionRequestDto req, string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/elecciones");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        msg.Content = JsonContent.Create(req);
+
+        var resp = await Client().SendAsync(msg, ct);
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
+    }
+
+    public async Task<ApiResponse<IdResponseDto>?> AdminCrearListaAsync(CrearListaRequestDto req, string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/elecciones/listas");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        msg.Content = JsonContent.Create(req);
+
+        var resp = await Client().SendAsync(msg, ct);
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
+    }
+
+    public async Task<ApiResponse<IdResponseDto>?> AdminCrearCandidatoAsync(CrearCandidatoRequestDto req, string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/elecciones/candidatos");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        msg.Content = JsonContent.Create(req);
+
+        var resp = await Client().SendAsync(msg, ct);
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<IdResponseDto>>(cancellationToken: ct);
+    }
+    //--
     public async Task<ApiResponse<ProcesoActivoDto>?> GetProcesoActivoAsync(string token, CancellationToken ct = default)
     {
         using var msg = new HttpRequestMessage(HttpMethod.Get, "api/public/procesos/activo");

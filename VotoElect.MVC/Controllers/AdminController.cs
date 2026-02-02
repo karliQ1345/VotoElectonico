@@ -2,6 +2,7 @@
 using VotoElect.MVC.Services;
 using VotoElect.MVC.ViewModels;
 using  VotoElect.MVC.Utils;
+using VotoElect.MVC.ApiContracts;
 
 namespace VotoElect.MVC.Controllers;
 
@@ -104,6 +105,98 @@ public class AdminController : Controller
 
         return View();
     }
+
+    //--
+    [HttpGet]
+    public async Task<IActionResult> Candidatos(CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        var vm = new AdminCandidatosVm();
+
+        var procesos = await _api.AdminListarProcesosAsync(token, ct);
+        vm.Procesos = procesos?.Data ?? new();
+
+        if (TempData["ok"] is string ok) vm.Ok = ok;
+        if (TempData["err"] is string err) vm.Error = err;
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CrearEleccion(AdminCandidatosVm form, CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        var resp = await _api.AdminCrearEleccionAsync(new CrearEleccionRequestDto
+        {
+            ProcesoElectoralId = form.ProcesoElectoralId,
+            Tipo = form.Tipo,
+            Titulo = form.Titulo,
+            MaxSeleccionIndividual = form.MaxSeleccionIndividual
+        }, token, ct);
+
+        TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear la elección.";
+        if (resp?.Data != null)
+            TempData[resp?.Ok == true ? "ok" : "err"] += $" (Id: {resp.Data.Id})";
+
+        return RedirectToAction(nameof(Candidatos));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CrearLista(AdminCandidatosVm form, CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        var resp = await _api.AdminCrearListaAsync(new CrearListaRequestDto
+        {
+            EleccionId = form.EleccionId,
+            Nombre = form.ListaNombre,
+            Codigo = form.ListaCodigo,
+            LogoUrl = form.ListaLogoUrl
+        }, token, ct);
+
+        TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear la lista.";
+        if (resp?.Data != null)
+            TempData[resp?.Ok == true ? "ok" : "err"] += $" (Id: {resp.Data.Id})";
+
+        return RedirectToAction(nameof(Candidatos));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CrearCandidato(AdminCandidatosVm form, CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        var resp = await _api.AdminCrearCandidatoAsync(new CrearCandidatoRequestDto
+        {
+            EleccionId = form.EleccionId,
+            NombreCompleto = form.CandidatoNombre,
+            Cargo = form.CandidatoCargo,
+            FotoUrl = form.CandidatoFotoUrl,
+            PartidoListaId = form.CandidatoPartidoListaId
+        }, token, ct);
+
+        TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear el candidato.";
+        if (resp?.Data != null)
+            TempData[resp?.Ok == true ? "ok" : "err"] += $" (Id: {resp.Data.Id})";
+
+        return RedirectToAction(nameof(Candidatos));
+    }
+    //--
+
+
     [HttpGet]
     public async Task<IActionResult> Padron(string? procesoId, CancellationToken ct)
     {

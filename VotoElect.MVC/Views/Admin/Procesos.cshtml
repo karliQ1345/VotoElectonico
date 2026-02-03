@@ -52,12 +52,7 @@
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary w-100">Crear</button>
 
-                        <button type="submit"
-                                class="btn btn-outline-primary w-100"
-                                name="continuarCandidatos"
-                                value="true">
-                            Crear y gestionar candidatos
-                        </button>
+                       
                     </div>
                 </form>
             </div>
@@ -84,7 +79,9 @@
                                 var sinPadron = !p.PadronCargado;
 
                                 <tr>
-@@ -70,59 +86,64 @@
+                                       <td>
+                                        <div class="fw-semibold">@p.Nombre</div>
+
                                         <div class="text-muted small">@p.ProcesoElectoralId</div>
                                     </td>
                                     <td>@p.Estado</td>

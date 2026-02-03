@@ -27,12 +27,65 @@ public class ApiService
         return await resp.Content.ReadFromJsonAsync<ApiResponse<TwoFactorVerifyResponseDto>>(cancellationToken: ct);
     }
 
-    public async Task<ApiResponse<IniciarVotacionResponseDto>?> IniciarVotacionAsync(IniciarVotacionRequestDto req, CancellationToken ct = default)
+    public async Task<ApiResponse<IniciarVotacionResponseDto>?> IniciarVotacionAsync(
+    IniciarVotacionRequestDto req,
+    string token,
+    CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/votacion/iniciar");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        msg.Content = JsonContent.Create(req);
+
+        var resp = await Client().SendAsync(msg, ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine("[IniciarVotacion] URL=api/votacion/iniciar");
+        Console.WriteLine($"[IniciarVotacion] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[IniciarVotacion] Body={raw}");
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+            resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            return new ApiResponse<IniciarVotacionResponseDto>
+            {
+                Ok = false,
+                Message = "No autorizado para iniciar votación. Vuelve a iniciar sesión.",
+                Data = null
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new ApiResponse<IniciarVotacionResponseDto>
+            {
+                Ok = false,
+                Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}",
+                Data = null
+            };
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new ApiResponse<IniciarVotacionResponseDto>
+            {
+                Ok = false,
+                Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}",
+                Data = null
+            };
+        }
+
+        return JsonSerializer.Deserialize<ApiResponse<IniciarVotacionResponseDto>>(
+            raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
+    public async Task<ApiResponse<IniciarVotacionResponseDto>?> IniciarVotacionAsync(
+    IniciarVotacionRequestDto req,
+    CancellationToken ct = default)
     {
         var resp = await Client().PostAsJsonAsync("api/votacion/iniciar", req, ct);
         return await resp.Content.ReadFromJsonAsync<ApiResponse<IniciarVotacionResponseDto>>(cancellationToken: ct);
     }
-
     public async Task<ApiResponse<BoletaDataDto>?> GetBoletaAsync(string procesoId, string eleccionId, CancellationToken ct = default)
     {
         var url = $"api/votacion/boleta?procesoId={procesoId}&eleccionId={eleccionId}";

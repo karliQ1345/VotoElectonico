@@ -38,12 +38,21 @@
                     <hr />
 
                     <!-- Jefe vota sin pedir código -->
-                    <form asp-action="Votar" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-secondary w-100 font-weight-bold">
-                            <i class="fas fa-vote-yea mr-2"></i>Ir a votar (Jefe)
-                        </button>
-                    </form>
+                   @if (Model.Panel.BotonIrAVotarDisponible)
+{
+    <form asp-action="Votar" method="post" onsubmit="this.querySelector('button').disabled=true;">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-secondary w-100 font-weight-bold">
+            <i class="fas fa-vote-yea mr-2"></i>Ir a votar (Jefe)
+        </button>
+    </form>
+}
+else
+{
+    <div class="alert alert-warning mb-0">
+        Este jefe no puede votar ahora (no está en padrón del proceso o ya votó).
+    </div>
+}
 
                     <div class="small-muted mt-2">
                         Este botón inicia la votación del jefe sin pedir código en pantalla.
@@ -142,7 +151,12 @@
 
     </div>
 </div>
-
+<form asp-action="Votar" method="post" onsubmit="this.querySelector('button').disabled=true;">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-secondary w-100 font-weight-bold">
+        <i class="fas fa-vote-yea mr-2"></i>Ir a votar (Jefe)
+    </button>
+</form>
 
 
 

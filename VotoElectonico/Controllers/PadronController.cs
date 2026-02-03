@@ -35,7 +35,7 @@ namespace VotoElectonico.Controllers
             int insertados = 0, actualizados = 0, conError = 0;
             var errores = new List<string>();
 
-            // Normaliza una vez
+            // Normaliza
             foreach (var r in rows)
             {
                 r.Cedula = r.Cedula?.Trim() ?? "";
@@ -44,7 +44,7 @@ namespace VotoElectonico.Controllers
                 r.JuntaCodigo = r.JuntaCodigo?.Trim() ?? "";
             }
 
-            // ===== PASADA 1: JEFES DE JUNTA =====
+            // ===== PASADA 1: JEFES =====
             var jefes = rows.Where(x => x.Rol == RolTipo.JefeJunta).ToList();
 
             foreach (var r in jefes)
@@ -86,15 +86,24 @@ namespace VotoElectonico.Controllers
                         user.Parroquia = r.Parroquia;
                         user.Genero = r.Genero;
                         user.FotoUrl = r.FotoUrl;
+
+                        // 🔥 clave: si existía inactivo, lo reactivas
+                        user.Activo = true;
+
                         actualizados++;
                     }
 
                     // 2) Rol JefeJunta (evitar duplicado)
-                    var yaTieneRol = await _db.UsuarioRoles.AnyAsync(ur => ur.UsuarioId == user.Id && ur.Rol == RolTipo.JefeJunta, ct);
-                    if (!yaTieneRol)
+                    var yaTieneRolJefe = await _db.UsuarioRoles.AnyAsync(ur => ur.UsuarioId == user.Id && ur.Rol == RolTipo.JefeJunta, ct);
+                    if (!yaTieneRolJefe)
                         _db.UsuarioRoles.Add(new UsuarioRol { UsuarioId = user.Id, Rol = RolTipo.JefeJunta });
 
-                    // 3) Junta (crear/actualizar) y ASIGNAR JEFE
+                    // 2.1) El jefe también es votante (evitar duplicado)
+                    var yaTieneRolVot = await _db.UsuarioRoles.AnyAsync(ur => ur.UsuarioId == user.Id && ur.Rol == RolTipo.Votante, ct);
+                    if (!yaTieneRolVot)
+                        _db.UsuarioRoles.Add(new UsuarioRol { UsuarioId = user.Id, Rol = RolTipo.Votante });
+
+                    // 3) Junta (crear/actualizar) y asignar jefe
                     var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Codigo == r.JuntaCodigo, ct);
                     if (junta == null)
                     {
@@ -107,17 +116,57 @@ namespace VotoElectonico.Controllers
                             Parroquia = r.Parroquia ?? "",
                             Recinto = null,
                             Activa = true,
-                            JefeJuntaUsuarioId = user.Id //FK válida
+                            JefeJuntaUsuarioId = user.Id
                         };
                         _db.Juntas.Add(junta);
                     }
                     else
                     {
-                        // Actualiza datos y jefe (por si cambió)
                         junta.Provincia = r.Provincia ?? junta.Provincia;
                         junta.Canton = r.Canton ?? junta.Canton;
                         junta.Parroquia = r.Parroquia ?? junta.Parroquia;
-                        junta.JefeJuntaUsuarioId = user.Id; //asegura FK válida
+                        junta.JefeJuntaUsuarioId = user.Id;
+                        junta.Activa = true;
+                    }
+
+                    // 4) 🔥 IMPORTANTE: el JEFE también debe existir en el PADRÓN del proceso
+                    var prJefe = await _db.PadronRegistros.FirstOrDefaultAsync(x =>
+                        x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
+
+                    if (prJefe == null)
+                    {
+                        prJefe = new PadronRegistro
+                        {
+                            Id = Guid.NewGuid(),
+                            ProcesoElectoralId = procesoId,
+                            UsuarioId = user.Id,
+                            JuntaId = junta.Id,
+                            YaVoto = false
+                        };
+                        _db.PadronRegistros.Add(prJefe);
+                    }
+                    else
+                    {
+                        prJefe.JuntaId = junta.Id;
+                    }
+
+                    // 5) (Opcional) Código para el jefe también (consistencia)
+                    var cvJefe = await _db.CodigosVotacion.FirstOrDefaultAsync(x =>
+                        x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
+
+                    if (cvJefe == null)
+                    {
+                        var code = SecurityHelpers.GenerateNumericCode(6);
+                        cvJefe = new CodigoVotacion
+                        {
+                            Id = Guid.NewGuid(),
+                            ProcesoElectoralId = procesoId,
+                            UsuarioId = user.Id,
+                            CodigoHash = SecurityHelpers.HashWithSalt(code),
+                            Usado = false,
+                            CreadoUtc = DateTime.UtcNow
+                        };
+                        _db.CodigosVotacion.Add(cvJefe);
                     }
                 }
                 catch (Exception ex)
@@ -127,7 +176,6 @@ namespace VotoElectonico.Controllers
                 }
             }
 
-            // Guarda jefes + juntas primero (para que existan antes de votantes)
             await _db.SaveChangesAsync(ct);
 
             // ===== PASADA 2: VOTANTES =====
@@ -142,7 +190,6 @@ namespace VotoElectonico.Controllers
                     if (string.IsNullOrWhiteSpace(r.JuntaCodigo))
                         throw new Exception("JuntaCodigo requerido para VOTANTE.");
 
-                    // 1) Junta debe existir y tener jefe (ya creada en pasada 1)
                     var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Codigo == r.JuntaCodigo, ct);
                     if (junta == null)
                         throw new Exception($"La junta '{r.JuntaCodigo}' no existe. Debe venir una fila Rol=JefeJunta para esa junta.");
@@ -150,7 +197,6 @@ namespace VotoElectonico.Controllers
                     if (junta.JefeJuntaUsuarioId == Guid.Empty)
                         throw new Exception($"La junta '{r.JuntaCodigo}' no tiene jefe asignado.");
 
-                    // 2) Usuario votante (crear/actualizar)
                     var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Cedula == r.Cedula, ct);
                     if (user == null)
                     {
@@ -180,15 +226,17 @@ namespace VotoElectonico.Controllers
                         user.Parroquia = r.Parroquia;
                         user.Genero = r.Genero;
                         user.FotoUrl = r.FotoUrl;
+
+                        // 🔥 clave: reactivar si estaba inactivo
+                        user.Activo = true;
+
                         actualizados++;
                     }
 
-                    // 3) Rol votante (evitar duplicado)
                     var yaTieneRolVot = await _db.UsuarioRoles.AnyAsync(ur => ur.UsuarioId == user.Id && ur.Rol == RolTipo.Votante, ct);
                     if (!yaTieneRolVot)
                         _db.UsuarioRoles.Add(new UsuarioRol { UsuarioId = user.Id, Rol = RolTipo.Votante });
 
-                    // 4) PadronRegistro (por proceso + usuario)
                     var pr = await _db.PadronRegistros.FirstOrDefaultAsync(x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
                     if (pr == null)
                     {
@@ -207,7 +255,6 @@ namespace VotoElectonico.Controllers
                         pr.JuntaId = junta.Id;
                     }
 
-                    // 5) CodigoVotacion (por proceso + usuario)
                     var cv = await _db.CodigosVotacion.FirstOrDefaultAsync(x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
                     if (cv == null)
                     {
@@ -245,5 +292,4 @@ namespace VotoElectonico.Controllers
             return Ok(ApiResponse<CargaPadronResponseDto>.Success(resp, "Carga de padrón procesada."));
         }
     }
-
 }

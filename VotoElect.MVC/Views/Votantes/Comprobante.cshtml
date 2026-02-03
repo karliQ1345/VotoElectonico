@@ -9,6 +9,14 @@
     @Model.Mensaje
 </div>
 
+@if (!string.IsNullOrWhiteSpace(Model.PapeletaUrl))
+{
+    <div class="mt-3">
+        <a class="btn btn-primary" href="@Model.PapeletaUrl" target="_blank">
+            Ver papeleta / comprobante
+        </a>
+    </div>
+}
 @if (Model.PapeletaEnviada)
 {
     <div class="alert alert-info">

@@ -61,9 +61,10 @@
                     </div>
                 </form>
             </div>
+        </div>
 
-            <!-- ✅ BLOQUE SEPARADO: Carga masiva (otro form aparte) -->
-            <div class="col-lg-7">
+        <!-- ✅ BLOQUE SEPARADO: Carga masiva (otro form aparte) -->
+        <div class="col-lg-7">
             <div class="p-4 card-soft">
                 <h4 class="mb-3">Listado</h4>
 
@@ -84,7 +85,8 @@
                                 var sinPadron = !p.PadronCargado;
 
                                 <tr>
-@@ -70,59 +86,64 @@
+                                    <td>
+                                        <div class="fw-semibold">@p.Nombre</div>
                                         <div class="text-muted small">@p.ProcesoElectoralId</div>
                                     </td>
                                     <td>@p.Estado</td>

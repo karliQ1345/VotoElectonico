@@ -37,4 +37,5 @@ public class VotantesComprobanteVm
     public bool PapeletaEnviada { get; set; }
     public string? EmailEnmascarado { get; set; }
     public string? Mensaje { get; set; }
+    public string? PapeletaUrl { get; set; }
 }

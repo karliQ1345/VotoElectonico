@@ -203,23 +203,24 @@ public class VotantesController : Controller
 
         // Limpia el código para que no re-emita accidentalmente
         HttpContext.Session.Remove(SessionKeys.CodigoUnico);
-
         return RedirectToAction(nameof(Comprobante), new
         {
             enviado = resp.Data.PapeletaEnviada,
             email = resp.Data.EmailEnmascarado,
-            msg = resp.Data.Mensaje
+            msg = resp.Data.Mensaje,
+            url = resp.Data.PapeletaUrl
         });
     }
 
     [HttpGet]
-    public IActionResult Comprobante(bool enviado, string? email, string? msg)
+    public IActionResult Comprobante(bool enviado, string? email, string? msg, string? url)
     {
         return View(new VotantesComprobanteVm
         {
             PapeletaEnviada = enviado,
             EmailEnmascarado = email,
-            Mensaje = msg
+            Mensaje = msg,
+            PapeletaUrl = url
         });
     }
 }

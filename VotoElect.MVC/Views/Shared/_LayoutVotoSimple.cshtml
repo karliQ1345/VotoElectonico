@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - EcuaVoto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" href="~/img/logo.png" />
+
+    <!-- Fuentes e íconos (si los usas en la vista) -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSS base (mantén tu estilo general) -->
+    <link href="~/css/style.min.css" rel="stylesheet">
+    <link href="~/css/votoecua-extras.css" rel="stylesheet">
+
+    @RenderSection("Styles", required: false)
+</head>
+
+<body>
+    <!-- Fondo tipo hero (café) reutilizando la clase de tu plantilla -->
+    <div class="container-fluid p-0 page-header position-relative overlay-bottom">
+        <div class="d-flex align-items-center justify-content-center min-vh-100 px-3">
+            <div class="w-100" style="max-width: 520px;">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    <!-- JS mínimo -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+
+</html>

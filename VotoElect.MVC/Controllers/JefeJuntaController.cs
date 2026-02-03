@@ -126,9 +126,23 @@ public class JefeJuntaController : Controller
             CedulaVotante = cedula
         }, token, ct);
 
-        if (ver == null || !ver.Ok || ver.Data == null || !ver.Data.Permitido || string.IsNullOrWhiteSpace(ver.Data.CodigoUnico))
+        if (ver == null || !ver.Ok || ver.Data == null)
         {
-            TempData["err"] = ver?.Message ?? ver?.Data?.Mensaje ?? "No se pudo habilitar el voto del jefe.";
+            TempData["err"] = ver?.Message ?? "No se pudo habilitar el voto del jefe.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        if (!ver.Data.Permitido)
+        {
+            // Ej: "Ya registró el voto" o "No está habilitado"
+            TempData["err"] = ver.Data.Mensaje;
+            TempData["verif_json"] = JsonSerializer.Serialize(ver.Data);
+            return RedirectToAction(nameof(Panel));
+        }
+
+        if (string.IsNullOrWhiteSpace(ver.Data.CodigoUnico))
+        {
+            TempData["err"] = "No se generó código único para el jefe.";
             return RedirectToAction(nameof(Panel));
         }
 
@@ -139,7 +153,7 @@ public class JefeJuntaController : Controller
             ProcesoElectoralId = procesoId,
             Cedula = cedula,
             CodigoUnico = codigo
-        }, ct);
+        }, token, ct);
 
         if (ini == null || !ini.Ok || ini.Data == null || !ini.Data.Habilitado)
         {

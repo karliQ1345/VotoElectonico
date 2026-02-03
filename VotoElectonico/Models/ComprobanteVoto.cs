@@ -27,5 +27,7 @@ namespace VotoElectonico.Models
         public DateTime? EnviadoUtc { get; set; }
         public string? BrevoMessageId { get; set; }
         public string? ErrorEnvio { get; set; }
+        public string? PublicToken { get; set; }
+        public DateTime? PublicTokenExpiraUtc { get; set; }
     }
 }

@@ -335,23 +335,57 @@ namespace VotoElectonico.Controllers
                 JuntaId = junta.Id,
                 JefeJuntaUsuarioId = junta.JefeJuntaUsuarioId,
                 GeneradoUtc = DateTime.UtcNow,
-                EstadoEnvio = ComprobanteEstado.Pendiente
+                EstadoEnvio = ComprobanteEstado.Pendiente,
+
+                PublicToken = CreatePublicToken(),
+                PublicTokenExpiraUtc = DateTime.UtcNow.AddHours(24)
+
             };
 
             _db.ComprobantesVoto.Add(comprobante);
+            //
 
             await _db.SaveChangesAsync(ct);
+            var baseUrl = (_cfg["App:PublicBaseUrl"] ?? "").Trim().TrimEnd('/');
+            string? papeletaUrl = null;
 
+            if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(comprobante.PublicToken))
+            {
+                papeletaUrl = $"{baseUrl}/api/votacion/comprobante/{comprobante.PublicToken}";
+            }
             // Enviar correo (comprobante)
             var emailMasked = SecurityHelpers.MaskEmail(user.Email);
+            var fotoUrl = user.FotoUrl ?? ""; // si FotoUrl está en Usuario. Si está en padrón, ajústalo.
+            var btn = !string.IsNullOrWhiteSpace(papeletaUrl)
+                ? $@"<p><a href=""{papeletaUrl}"" style=""display:inline-block;padding:12px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;"">Ver papeleta / comprobante</a></p>
+        <p style=""font-size:12px;color:#666"">Si el botón no funciona, copia y pega este enlace:<br>{papeletaUrl}</p>"
+                : @"<p style=""color:#b00"">No se pudo generar el enlace público (configura App:PublicBaseUrl).</p>";
+
             var html = $@"
-        <h3>Comprobante de Votación</h3>
-        <p>Su papeleta ha sido registrada correctamente.</p>
-        <p><b>Proceso:</b> {proceso.Nombre}</p>
+        <div style=""font-family:Arial,sans-serif;max-width:640px;margin:auto"">
+         <h2>Comprobante de Votación</h2>
+       <p>Su voto ha sido registrado correctamente.</p>
+
+         <div style=""border:1px solid #eee;border-radius:12px;padding:16px;background:#fafafa"">
+          <p><b>Proceso:</b> {proceso.Nombre}</p>
         <p><b>Elección:</b> {eleccion.Titulo}</p>
         <p><b>Junta:</b> {junta.Codigo}</p>
-        <p><i>Este correo es un comprobante de participación.</i></p>";
+        <p><b>Fecha:</b> {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC</p>
 
+         <hr style=""border:none;border-top:1px solid #eee;margin:12px 0"">
+  
+        <p><b>Votante:</b> {user.NombreCompleto}</p>
+          <p><b>Cédula:</b> {user.Cedula}</p>
+ 
+           {(string.IsNullOrWhiteSpace(fotoUrl) ? "" : $@"<p><img src=""{fotoUrl}"" alt=""Foto"" style=""width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid #ddd"" /></p>")}
+        </div>
+
+         {btn}
+
+        <p style=""font-size:12px;color:#666"">
+          Este comprobante confirma participación. No incluye la selección del voto.
+        </p>
+        </div>";
             var send = new SendEmailDto
             {
                 ToEmail = user.Email,
@@ -381,8 +415,90 @@ namespace VotoElectonico.Controllers
                 Ok = true,
                 Mensaje = "Voto registrado.",
                 PapeletaEnviada = sent,
-                EmailEnmascarado = emailMasked
+                EmailEnmascarado = emailMasked,
+                PapeletaUrl = papeletaUrl
             }));
+        }
+        [AllowAnonymous]
+        [HttpGet("comprobante/{token}")]
+        public async Task<IActionResult> ComprobantePublico([FromRoute] string token, CancellationToken ct)
+        {
+            token = (token ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(token))
+                return Content("Token inválido.", "text/plain");
+
+            var comp = await _db.ComprobantesVoto
+                .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
+
+            if (comp == null)
+                return Content("Comprobante no existe.", "text/plain");
+
+            if (comp.PublicTokenExpiraUtc.HasValue && DateTime.UtcNow > comp.PublicTokenExpiraUtc.Value)
+                return Content("El enlace ha expirado.", "text/plain");
+
+            var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
+            var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == comp.ProcesoElectoralId, ct);
+            var eleccion = await _db.Elecciones.FirstOrDefaultAsync(x => x.Id == comp.EleccionId, ct);
+            var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
+
+            var fotoUrl = user?.FotoUrl ?? "";
+
+            var html = $@"
+<!doctype html>
+<html>
+<head>
+  <meta charset=""utf-8""/>
+  <meta name=""viewport"" content=""width=device-width, initial-scale=1""/>
+  <title>Comprobante</title>
+</head>
+<body style=""font-family:Arial,sans-serif;background:#f5f5f5;padding:18px"">
+  <div style=""max-width:720px;margin:auto;background:#fff;border-radius:14px;padding:18px;border:1px solid #eee"">
+    <h2 style=""margin-top:0"">Comprobante de Votación</h2>
+
+    <div style=""display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"">
+      <div style=""min-width:160px"">
+        <div style=""border:1px solid #eee;border-radius:12px;padding:10px;background:#fafafa;text-align:center"">
+          <div style=""font-weight:700;margin-bottom:8px"">Foto</div>
+          {(string.IsNullOrWhiteSpace(fotoUrl)
+                    ? "<div style='color:#999'>Sin foto</div>"
+                    : $@"<img src=""{fotoUrl}"" style=""width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid #ddd""/>")}
+        </div>
+      </div>
+
+      <div style=""flex:1;min-width:260px"">
+        <p><b>Votante:</b> {user?.NombreCompleto}</p>
+        <p><b>Cédula:</b> {user?.Cedula}</p>
+        <p><b>Proceso:</b> {proceso?.Nombre}</p>
+        <p><b>Elección:</b> {eleccion?.Titulo}</p>
+        <p><b>Junta:</b> {junta?.Codigo}</p>
+        <p><b>Generado:</b> {comp.GeneradoUtc:yyyy-MM-dd HH:mm} UTC</p>
+        <p style=""font-size:12px;color:#666"">No incluye la selección del voto.</p>
+      </div>
+    </div>
+
+    <hr style=""border:none;border-top:1px solid #eee;margin:16px 0""/>
+    <button onclick=""window.print()"" style=""padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer"">
+      Imprimir / Guardar PDF
+    </button>
+  </div>
+</body>
+</html>";
+
+            return Content(html, "text/html; charset=utf-8");
+        }
+        private static string CreatePublicToken()
+        {
+            // 32 bytes aleatorios, base64url (sin + / =)
+            var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+            return Base64UrlEncode(bytes);
+        }
+
+        private static string Base64UrlEncode(byte[] data)
+        {
+            return Convert.ToBase64String(data)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", "");
         }
     }
 }

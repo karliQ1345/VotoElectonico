@@ -8,5 +8,7 @@ public class EmitirVotoResponseDto
     // requisito: "Su papeleta ha sido enviada a su correo"
     public bool PapeletaEnviada { get; set; }
     public string? EmailEnmascarado { get; set; }
+
+    public string? PapeletaUrl { get; set; }
 }
 

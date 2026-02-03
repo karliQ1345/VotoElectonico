@@ -5,6 +5,7 @@ public class CrearProcesoRequestDto
     public string Nombre { get; set; } = "";
     public DateTime InicioUtc { get; set; }
     public DateTime FinUtc { get; set; }
+    public string Tipo { get; set; } = "";
 }
 
 public class ProcesoResumenDto

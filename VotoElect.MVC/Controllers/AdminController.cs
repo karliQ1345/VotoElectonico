@@ -62,8 +62,10 @@ public class AdminController : Controller
         var resp = await _api.AdminCrearProcesoAsync(new()
         {
             Nombre = form.Nombre.Trim(),
-            InicioUtc = inicioUtc,
-            FinUtc = finUtc
+
+            FinUtc = finUtc,
+            Tipo = form.TipoProceso
+
         }, token, ct);
 
         TempData[resp?.Ok == true ? "ok" : "err"] = resp?.Message ?? "No se pudo crear proceso.";
@@ -135,7 +137,15 @@ public class AdminController : Controller
         if (!string.IsNullOrWhiteSpace(tipo))
             vm.Tipo = tipo;
         if (!string.IsNullOrWhiteSpace(titulo))
+        {
             vm.Titulo = titulo;
+        }
+        else if (!string.IsNullOrWhiteSpace(vm.ProcesoElectoralId))
+        {
+            var proceso = vm.Procesos.FirstOrDefault(p => p.ProcesoElectoralId == vm.ProcesoElectoralId);
+            if (proceso != null)
+                vm.Titulo = proceso.Nombre;
+        }
 
         if (TempData["ok"] is string ok) vm.Ok = ok;
         if (TempData["err"] is string err) vm.Error = err;
@@ -223,9 +233,39 @@ public class AdminController : Controller
 
         if (string.IsNullOrWhiteSpace(form.CargaEleccionId))
         {
-            TempData["err"] = "Ingrese el EleccionId para la carga masiva.";
-            return RedirectToAction(nameof(Candidatos));
+
+            if (string.IsNullOrWhiteSpace(form.ProcesoElectoralId))
+            {
+                TempData["err"] = "Seleccione un proceso para crear la elección.";
+                return RedirectToAction(nameof(Candidatos));
+            }
+
+            var procesos = await _api.AdminListarProcesosAsync(token, ct);
+            var proceso = procesos?.Data?.FirstOrDefault(p => p.ProcesoElectoralId == form.ProcesoElectoralId);
+
+            var titulo = !string.IsNullOrWhiteSpace(proceso?.Nombre)
+                ? proceso.Nombre
+                : string.IsNullOrWhiteSpace(form.Titulo)
+                    ? $"Elección {DateTime.UtcNow:yyyy-MM-dd}"
+                    : form.Titulo.Trim();
+
+            var crearEleccion = await _api.AdminCrearEleccionAsync(new CrearEleccionRequestDto
+            {
+                ProcesoElectoralId = form.ProcesoElectoralId,
+                Tipo = form.Tipo,
+                Titulo = titulo,
+                MaxSeleccionIndividual = form.MaxSeleccionIndividual
+            }, token, ct);
+
+            if (crearEleccion?.Ok != true || crearEleccion.Data == null)
+            {
+                TempData["err"] = crearEleccion?.Message ?? "No se pudo crear la elección para la carga masiva.";
+                return RedirectToAction(nameof(Candidatos));
+            }
+
+            form.CargaEleccionId = crearEleccion.Data.Id;
         }
+
         if (excel == null || excel.Length == 0)
         {
             TempData["err"] = "Seleccione un archivo Excel.";

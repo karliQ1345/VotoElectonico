@@ -29,7 +29,7 @@
                             <option value="">-- Selecciona un proceso --</option>
                             @foreach (var p in Model.Procesos)
                             {
-                                <option value="@p.ProcesoElectoralId" selected="@(p.ProcesoElectoralId == Model.ProcesoElectoralId)">
+                               <option value="@p.ProcesoElectoralId" selected="@(p.ProcesoElectoralId == Model.ProcesoElectoralId ? "selected" : null)">
                                     @p.Nombre (@p.Estado)
                                 </option>
                             }
@@ -38,8 +38,9 @@
 
                     <div class="mb-3">
                         <label class="form-label">Tipo</label>
-                        <select class="form-select" asp-for="Tipo" required>
+                     <select class="form-select" asp-for="Tipo" required>
                             <option value="Presidente_SiNoBlanco">Presidentes (SI/NO/BLANCO)</option>
+
                             <option value="Asambleistas">Asambleístas</option>
                         </select>
                     </div>
@@ -51,7 +52,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Máx selección individual (solo Asambleístas)</label>
-                        <input class="form-control" type="number" min="1" asp-for="MaxSeleccionIndividual" />
+                      <input class="form-control" type="number" min="1" asp-for="MaxSeleccionIndividual" />
                     </div>
 
                     <button class="btn btn-primary w-100" type="submit">Crear elección</button>
@@ -135,9 +136,7 @@
         </div>
     </div>
 </div>
-
-<div class="row mt-4">
-    <div class="col-lg-12">
+  <div class="col-lg-12">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">4) Carga masiva de candidatos</h5>
@@ -145,27 +144,22 @@
                     Usa un Excel con columnas: EleccionId, NombreCompleto, Cargo, FotoUrl, PartidoListaId.
                     La columna EleccionId se reemplazará por el valor ingresado aquí.
                 </p>
-
                 <form asp-action="CargarCandidatos" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
-
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Elección (EleccionId)</label>
                             <input class="form-control" asp-for="CargaEleccionId" required />
                         </div>
-
                         <div class="col-md-8">
                             <label class="form-label">Archivo Excel</label>
                             <input class="form-control" type="file" name="excel" accept=".xlsx,.xls" required />
                         </div>
                     </div>
-
-                    <button class="btn btn-outline-primary mt-3" type="submit">Cargar candidatos</button>
+                    <button class="btn btn-outline-primary mt-3">Cargar candidatos</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
                   

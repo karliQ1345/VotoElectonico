@@ -27,6 +27,16 @@
                         <label class="font-weight-bold">Nombre</label>
                         <input asp-for="Nombre" class="form-control" placeholder="Elección General 2026" />
                     </div>
+                     <div class="mb-3">
+                        <label class="font-weight-bold">Tipo de proceso</label>
+                        <select asp-for="TipoProceso" class="form-select" required>
+                            <option value="Asambleistas">Asambleístas</option>
+                            <option value="Presidente_SiNoBlanco">Presidentes (SI/NO/BLANCO)</option>
+                        </select>
+                        <div class="small-muted mt-1">
+                            Se usa al crear la elección y cargar los candidatos.
+                        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="font-weight-bold">Inicio (UTC)</label>
@@ -53,42 +63,7 @@
             </div>
 
             <!-- ✅ BLOQUE SEPARADO: Carga masiva (otro form aparte) -->
-            <div class="mt-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">4) Carga masiva de candidatos</h5>
-                        <a class="btn btn-outline-secondary btn-sm"
-                           asp-controller="Admin"
-                           asp-action="Candidatos"
-                           asp-route-procesoId="@p.ProcesoElectoralId">
-                            Candidatos
-                        </a>
-
-                        <form asp-action="CargarCandidatos" method="post" enctype="multipart/form-data">
-                            @Html.AntiForgeryToken()
-
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Elección (EleccionId)</label>
-                                    <input class="form-control" asp-for="CargaEleccionId" required />
-                                </div>
-
-                                <div class="col-md-8">
-                                    <label class="form-label">Archivo Excel</label>
-                                    <input class="form-control" type="file" name="excel" accept=".xlsx,.xls" required />
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-outline-primary mt-3">
-                                Cargar candidatos
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-7">
+            <div class="col-lg-7">
             <div class="p-4 card-soft">
                 <h4 class="mb-3">Listado</h4>
 
@@ -109,11 +84,9 @@
                                 var sinPadron = !p.PadronCargado;
 
                                 <tr>
-                                    <td>
-                                        <div>@p.Nombre</div>
+@@ -70,59 +86,64 @@
                                         <div class="text-muted small">@p.ProcesoElectoralId</div>
                                     </td>
-
                                     <td>@p.Estado</td>
 
                                     <td>
@@ -127,20 +100,16 @@
                                         }
                                     </td>
 
-                                    <td>
-                                        @p.InicioUtc.ToString("yyyy-MM-dd HH:mm")
-                                        —
-                                        @p.FinUtc.ToString("yyyy-MM-dd HH:mm")
-                                    </td>
+                                    <td>@p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")</td>
 
                                     <td class="text-end">
+                                        <!-- ✅ Padrón por proceso -->
                                         <a class="btn btn-outline-primary btn-sm"
                                            asp-controller="Admin"
                                            asp-action="Padron"
                                            asp-route-procesoId="@p.ProcesoElectoralId">
                                             Padrón
                                         </a>
-
                                         <a class="btn btn-outline-secondary btn-sm"
                                            asp-controller="Admin"
                                            asp-action="Candidatos"
@@ -151,6 +120,7 @@
                                         <form asp-action="Activar" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
+
                                             <button type="submit"
                                                     class="btn btn-outline-dark btn-sm"
                                                     @(sinPadron ? "disabled title=\"Cargue el padrón antes de activar\"" : "")>
@@ -179,5 +149,3 @@
         </div>
     </div>
 </div>
-
-

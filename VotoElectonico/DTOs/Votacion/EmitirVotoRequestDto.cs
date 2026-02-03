@@ -8,8 +8,8 @@ public class EmitirVotoRequestDto
     // validación presencial
     public string Cedula { get; set; } = null!;
     public string CodigoUnico { get; set; } = null!;
+    public string? PresidenteCandidatoId { get; set; }
 
-    
     public string? OpcionPresidente { get; set; }
 
     // Asambleístas:

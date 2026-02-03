@@ -156,42 +156,91 @@ namespace VotoElectonico.Controllers
                 return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("EleccionId inválido."));
 
             var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == procesoId, ct);
-            if (proceso == null) return NotFound(ApiResponse<EmitirVotoResponseDto>.Fail("Proceso no existe."));
+            if (proceso == null)
+                return NotFound(ApiResponse<EmitirVotoResponseDto>.Fail("Proceso no existe."));
 
-            var activo = proceso.Estado == ProcesoEstado.Activo && DateTime.UtcNow >= proceso.InicioUtc && DateTime.UtcNow <= proceso.FinUtc;
-            if (!activo) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Proceso no activo."));
+            var activo = proceso.Estado == ProcesoEstado.Activo
+                         && DateTime.UtcNow >= proceso.InicioUtc
+                         && DateTime.UtcNow <= proceso.FinUtc;
 
-            var eleccion = await _db.Elecciones.FirstOrDefaultAsync(x => x.Id == eleccionId && x.ProcesoElectoralId == procesoId && x.Activa, ct);
-            if (eleccion == null) return NotFound(ApiResponse<EmitirVotoResponseDto>.Fail("Elección no válida."));
+            if (!activo)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Proceso no activo."));
+
+            var eleccion = await _db.Elecciones
+                .FirstOrDefaultAsync(x => x.Id == eleccionId && x.ProcesoElectoralId == procesoId && x.Activa, ct);
+
+            if (eleccion == null)
+                return NotFound(ApiResponse<EmitirVotoResponseDto>.Fail("Elección no válida."));
 
             var ced = req.Cedula?.Trim();
             var code = req.CodigoUnico?.Trim();
+
             if (string.IsNullOrWhiteSpace(ced) || string.IsNullOrWhiteSpace(code))
                 return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Cedula y CodigoUnico requeridos."));
 
             var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Cedula == ced && x.Activo, ct);
-            if (user == null) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Usuario no válido."));
+            if (user == null)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Usuario no válido."));
 
-            var padron = await _db.PadronRegistros.FirstOrDefaultAsync(x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
-            if (padron == null) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("No consta en padrón."));
-            if (padron.YaVoto) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Ya votó."));
+            var padron = await _db.PadronRegistros.FirstOrDefaultAsync(
+                x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
 
-            var cod = await _db.CodigosVotacion.FirstOrDefaultAsync(x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
-            if (cod == null) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Código no asignado."));
-            if (cod.Usado) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Código ya usado."));
+            if (padron == null)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("No consta en padrón."));
+            if (padron.YaVoto)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Ya votó."));
+
+            var cod = await _db.CodigosVotacion.FirstOrDefaultAsync(
+                x => x.ProcesoElectoralId == procesoId && x.UsuarioId == user.Id, ct);
+
+            if (cod == null)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Código no asignado."));
+            if (cod.Usado)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Código ya usado."));
             if (!SecurityHelpers.VerifyHashWithSalt(code, cod.CodigoHash))
                 return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Código incorrecto."));
 
-            // Validación elección
+            // =========================
+            // VALIDACIÓN DE ELECCIÓN
+            // =========================
             object votoPayload;
 
             if (eleccion.Tipo == EleccionTipo.Presidente_SiNoBlanco)
             {
-                var op = (req.OpcionPresidente ?? "").Trim().ToUpperInvariant();
-                if (op != "SI" && op != "NO" && op != "BLANCO")
-                    return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Opción Presidente inválida (SI/NO/BLANCO)."));
+                // NUEVO: votar por candidato (GUID) o BLANCO
+                var raw = (req.PresidenteCandidatoId ?? "").Trim();
 
-                votoPayload = new { tipo = "Presidente", opcion = op };
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    if (raw.Equals("BLANCO", StringComparison.OrdinalIgnoreCase))
+                    {
+                        votoPayload = new { tipo = "Presidente", modo = "Blanco" };
+                    }
+                    else
+                    {
+                        if (!Guid.TryParse(raw, out var candidatoId))
+                            return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("PresidenteCandidatoId inválido."));
+
+                        var existeCandidato = await _db.Candidatos.AnyAsync(x =>
+                            x.Id == candidatoId &&
+                            x.EleccionId == eleccionId &&
+                            x.Activo, ct);
+
+                        if (!existeCandidato)
+                            return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Candidato no existe o no pertenece a esta elección."));
+
+                        votoPayload = new { tipo = "Presidente", modo = "Candidato", candidatoId };
+                    }
+                }
+                else
+                {
+                    // FALLBACK OPCIONAL: seguir aceptando SI/NO/BLANCO (si tu MVC viejo todavía lo manda)
+                    var op = (req.OpcionPresidente ?? "").Trim().ToUpperInvariant();
+                    if (op != "SI" && op != "NO" && op != "BLANCO")
+                        return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Opción Presidente inválida (SI/NO/BLANCO)."));
+
+                    votoPayload = new { tipo = "Presidente", modo = "SiNoBlanco", opcion = op };
+                }
             }
             else // Asambleistas
             {
@@ -208,15 +257,20 @@ namespace VotoElectonico.Controllers
                 {
                     if (!Guid.TryParse(listaId!, out var lid))
                         return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("PartidoListaId inválido."));
-                    var existe = await _db.PartidosListas.AnyAsync(x => x.Id == lid && x.EleccionId == eleccionId, ct);
-                    if (!existe) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Lista no existe."));
+
+                    var existeLista = await _db.PartidosListas.AnyAsync(x => x.Id == lid && x.EleccionId == eleccionId, ct);
+                    if (!existeLista)
+                        return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Lista no existe."));
+
                     votoPayload = new { tipo = "Asambleistas", modo = "Plancha", partidoListaId = lid };
                 }
                 else
                 {
                     var max = eleccion.MaxSeleccionIndividual ?? 0;
-                    if (max <= 0) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Elección sin límite configurado."));
-                    if (candIds!.Count > max) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail($"Máximo permitido: {max}."));
+                    if (max <= 0)
+                        return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Elección sin límite configurado."));
+                    if (candIds!.Count > max)
+                        return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail($"Máximo permitido: {max}."));
 
                     var parsed = new List<Guid>();
                     foreach (var s in candIds)
@@ -226,7 +280,9 @@ namespace VotoElectonico.Controllers
                         parsed.Add(gid);
                     }
 
-                    var validos = await _db.Candidatos.CountAsync(x => x.EleccionId == eleccionId && x.Activo && parsed.Contains(x.Id), ct);
+                    var validos = await _db.Candidatos.CountAsync(x =>
+                        x.EleccionId == eleccionId && x.Activo && parsed.Contains(x.Id), ct);
+
                     if (validos != parsed.Count)
                         return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Uno o más candidatos no existen o no pertenecen a esta elección."));
 
@@ -234,19 +290,17 @@ namespace VotoElectonico.Controllers
                 }
             }
 
-            // Cifrado anónimo
             var keyB64 = _cfg["Crypto:KeyBase64"];
             var keyVer = _cfg["Crypto:KeyVersion"] ?? "v1";
             if (string.IsNullOrWhiteSpace(keyB64))
                 return StatusCode(500, ApiResponse<EmitirVotoResponseDto>.Fail("Crypto:KeyBase64 no configurado."));
 
             var key = Convert.FromBase64String(keyB64);
-
             var (cipherB64, nonceB64, tagB64) = SecurityHelpers.EncryptAesGcm(votoPayload, key);
 
-            // Junta
             var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == padron.JuntaId, ct);
-            if (junta == null) return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Junta no existe."));
+            if (junta == null)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Junta no existe."));
 
             // Guardar voto anónimo
             var voto = new VotoAnonimo
@@ -288,16 +342,15 @@ namespace VotoElectonico.Controllers
 
             await _db.SaveChangesAsync(ct);
 
-            // Enviar “papeleta” por correo (aquí como HTML simple; PDF lo puedes agregar luego)
+            // Enviar correo (comprobante)
             var emailMasked = SecurityHelpers.MaskEmail(user.Email);
             var html = $@"
-            <h3>Comprobante de Votación</h3>
-            <p>Su papeleta ha sido registrada correctamente.</p>
-            <p><b>Proceso:</b> {proceso.Nombre}</p>
-            <p><b>Elección:</b> {eleccion.Titulo}</p>
-            <p><b>Junta:</b> {junta.Codigo}</p>
-            <p><b>Jefe de Junta:</b> {junta.JefeJuntaUsuarioId}</p>
-            <p><i>Este correo es un comprobante de participación.</i></p>";
+        <h3>Comprobante de Votación</h3>
+        <p>Su papeleta ha sido registrada correctamente.</p>
+        <p><b>Proceso:</b> {proceso.Nombre}</p>
+        <p><b>Elección:</b> {eleccion.Titulo}</p>
+        <p><b>Junta:</b> {junta.Codigo}</p>
+        <p><i>Este correo es un comprobante de participación.</i></p>";
 
             var send = new SendEmailDto
             {

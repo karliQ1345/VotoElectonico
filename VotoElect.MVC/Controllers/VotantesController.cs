@@ -116,50 +116,53 @@ public class VotantesController : Controller
         });
     }
 
-        [HttpPost]
+    [HttpPost]
     public IActionResult Confirmar(
-        string procesoElectoralId,
-        string eleccionId,
-        string tipoEleccion,
-        string? opcionPresidente,
-        string? partidoListaId,
-        List<string>? candidatoIds)
+    string procesoElectoralId,
+    string eleccionId,
+    string tipoEleccion,
+    string? presidenteCandidatoId,
+    string? opcionPresidente,
+    string? partidoListaId,
+    List<string>? candidatoIds)
     {
         var vm = new VotantesConfirmarVm
         {
             ProcesoElectoralId = procesoElectoralId,
             EleccionId = eleccionId,
             TipoEleccion = tipoEleccion,
+            PresidenteCandidatoId = presidenteCandidatoId?.Trim(),
             OpcionPresidente = opcionPresidente?.Trim(),
             PartidoListaId = string.IsNullOrWhiteSpace(partidoListaId) ? null : partidoListaId.Trim(),
             CandidatoIds = candidatoIds ?? new List<string>()
         };
 
-        // resumen
         if (tipoEleccion == "Presidente_SiNoBlanco")
         {
-            if (string.IsNullOrWhiteSpace(vm.OpcionPresidente))
+            if (string.IsNullOrWhiteSpace(vm.PresidenteCandidatoId))
             {
-                vm.Error = "Seleccione una opción (SI/NO/BLANCO).";
+                vm.Error = "Seleccione un candidato (o BLANCO).";
                 return View(vm);
             }
-            vm.Resumen = $"Presidente: {vm.OpcionPresidente}";
+
+            vm.Resumen = vm.PresidenteCandidatoId.Equals("BLANCO", StringComparison.OrdinalIgnoreCase)
+                ? "Presidente: BLANCO"
+                : $"Presidente: {vm.PresidenteCandidatoId}";
+            return View(vm);
         }
-        else
+
+        var votoPlancha = !string.IsNullOrWhiteSpace(vm.PartidoListaId);
+        var votoIndividual = vm.CandidatoIds.Count > 0;
+
+        if (votoPlancha == votoIndividual)
         {
-            var votoPlancha = !string.IsNullOrWhiteSpace(vm.PartidoListaId);
-            var votoIndividual = vm.CandidatoIds.Count > 0;
-
-            if (votoPlancha == votoIndividual)
-            {
-                vm.Error = "Debes elegir plancha o candidatos individuales (solo uno).";
-                return View(vm);
-            }
-
-            vm.Resumen = votoPlancha
-                ? $"Asambleístas (Plancha): {vm.PartidoListaId}"
-                : $"Asambleístas (Individual): {vm.CandidatoIds.Count} candidato(s)";
+            vm.Error = "Debes elegir plancha o candidatos individuales (solo uno).";
+            return View(vm);
         }
+
+        vm.Resumen = votoPlancha
+            ? $"Asambleístas (Plancha): {vm.PartidoListaId}"
+            : $"Asambleístas (Individual): {vm.CandidatoIds.Count} candidato(s)";
 
         return View(vm);
     }
@@ -182,7 +185,8 @@ public class VotantesController : Controller
 
         if (vm.TipoEleccion == "Presidente_SiNoBlanco")
         {
-            req.OpcionPresidente = vm.OpcionPresidente;
+            req.PresidenteCandidatoId = vm.PresidenteCandidatoId;
+            req.OpcionPresidente = null;
         }
         else
         {

@@ -49,7 +49,7 @@ public class EmitirVotoRequestDto
     public string EleccionId { get; set; } = null!;
     public string Cedula { get; set; } = null!;
     public string CodigoUnico { get; set; } = null!;
-
+    public string? PresidenteCandidatoId { get; set; }
     public string? OpcionPresidente { get; set; }
     public string? PartidoListaId { get; set; }
     public List<string>? CandidatoIds { get; set; }

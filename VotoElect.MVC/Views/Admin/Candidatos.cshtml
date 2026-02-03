@@ -19,6 +19,7 @@
             <div class="card-body">
                 <h5 class="card-title">Carga masiva de candidatos</h5>
                 <p class="small text-muted mb-3">
+                    El Excel no requiere el ID del proceso; se asigna automáticamente según el proceso seleccionado.
                 </p>
                 <form asp-action="CargarCandidatos" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
@@ -60,5 +61,6 @@
         </div>
     </div>
 </div>
+
 
                   

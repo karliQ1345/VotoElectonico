@@ -1,0 +1,135 @@
+﻿.boleta-wrap {
+    padding: 2rem 0;
+}
+
+.boleta-title {
+    margin-bottom: .25rem;
+}
+
+.boleta-subtitle {
+    opacity: .75;
+    margin-bottom: 1.25rem;
+}
+
+/* Grid de opciones tipo tarjeta */
+.boleta-opciones {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    max-width: 720px;
+}
+
+.boleta-opcion {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+    .boleta-opcion input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+.boleta-card {
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 14px;
+    background: #fff;
+    padding: 18px;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    letter-spacing: 1px;
+    font-size: 30px;
+    text-transform: uppercase;
+}
+
+.boleta-opcion input:checked + .boleta-card {
+    border-color: rgba(197,147,60,.9);
+    box-shadow: 0 0 0 3px rgba(197,147,60,.25);
+}
+
+.boleta-help {
+    margin-top: .5rem;
+    font-size: .95rem;
+    opacity: .75;
+}
+
+/* Plancha */
+.lista-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.lista-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.lista-head {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.lista-logo {
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,.12);
+    object-fit: cover;
+    background: #f3f3f3;
+}
+
+.lista-meta .nombre {
+    font-weight: 800;
+}
+
+.lista-meta .codigo {
+    opacity: .7;
+    font-size: .95rem;
+}
+
+.lista-body {
+    padding: 14px;
+}
+
+.cands {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.cand {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+    .cand img {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,.12);
+        object-fit: cover;
+        background: #f3f3f3;
+    }
+
+    .cand .n {
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .cand .c {
+        opacity: .7;
+        font-size: .9rem;
+    }

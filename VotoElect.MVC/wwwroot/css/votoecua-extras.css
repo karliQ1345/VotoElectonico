@@ -1,0 +1,66 @@
+﻿.boleta-wrap {
+    margin-top: 30px;
+}
+
+.boleta-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 10px;
+}
+
+.boleta-foto img {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,.15);
+}
+
+.boleta-nombre {
+    font-weight: 700;
+}
+
+.boleta-cargo {
+    opacity: .75;
+    font-size: .95rem;
+}
+
+.opcion-card {
+    position: relative;
+    display: block;
+    cursor: pointer;
+    background: #fff;
+    border: 2px solid rgba(0,0,0,.12);
+    border-radius: 12px;
+    padding: 18px;
+    transition: transform .08s ease, border-color .15s ease, box-shadow .15s ease;
+    user-select: none;
+    min-height: 120px;
+}
+
+    .opcion-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    }
+
+    .opcion-card .opcion-radio {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+.opcion-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.opcion-sub {
+    margin-top: 6px;
+    opacity: .75;
+}
+
+.opcion-card.is-selected {
+    border-color: #d9a55c; /* tono café/oro del template */
+    box-shadow: 0 8px 22px rgba(217,165,92,.25);
+}

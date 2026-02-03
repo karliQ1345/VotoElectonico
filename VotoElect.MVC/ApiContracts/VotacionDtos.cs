@@ -61,5 +61,6 @@ public class EmitirVotoResponseDto
     public string Mensaje { get; set; } = "";
     public bool PapeletaEnviada { get; set; }
     public string? EmailEnmascarado { get; set; }
+    public string? PapeletaUrl { get; set; }
 }
 

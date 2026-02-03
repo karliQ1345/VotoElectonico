@@ -7,7 +7,7 @@ public static class ExcelCandidatosParser
 {
     /// <summary>
     /// Columnas esperadas (fila 1 headers):
-    /// NombreCompleto | 2 Cargo | 3 FotoUrl | 4 PartidoListaId
+    /// NombreCompleto | 2 Cargo | 3 FotoUrl | 4 PartidoListaId o Código de lista
     /// </summary>
     public static List<CrearCandidatoRequestDto> Leer(Stream stream)
     {

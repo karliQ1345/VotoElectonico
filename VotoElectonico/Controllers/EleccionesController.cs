@@ -95,15 +95,36 @@ namespace VotoElectonico.Controllers
                 return BadRequest(ApiResponse<IdResponseDto>.Fail("NombreCompleto y FotoUrl son requeridos."));
 
             Guid? listaId = null;
-            if (!string.IsNullOrWhiteSpace(req.PartidoListaId))
+            var partidoListaRaw = req.PartidoListaId?.Trim();
+            if (!string.IsNullOrWhiteSpace(partidoListaRaw))
             {
-                if (!Guid.TryParse(req.PartidoListaId, out var lid))
-                    return BadRequest(ApiResponse<IdResponseDto>.Fail("PartidoListaId inválido."));
-                var listaExiste = await _db.PartidosListas.AnyAsync(x => x.Id == lid && x.EleccionId == eleccionId, ct);
-                if (!listaExiste) return BadRequest(ApiResponse<IdResponseDto>.Fail("Lista no existe para esa elección."));
-                listaId = lid;
+                if (Guid.TryParse(partidoListaRaw, out var lid))
+                {
+                    var listaExiste = await _db.PartidosListas.AnyAsync(x => x.Id == lid && x.EleccionId == eleccionId, ct);
+                    if (!listaExiste) return BadRequest(ApiResponse<IdResponseDto>.Fail("Lista no existe para esa elección."));
+                    listaId = lid;
+                }
+                else
+                {
+                    var codigo = partidoListaRaw.ToUpperInvariant();
+                    var lista = await _db.PartidosListas
+                        .FirstOrDefaultAsync(x => x.EleccionId == eleccionId && x.Codigo.ToUpper() == codigo, ct);
+                    if (lista == null)
+                    {
+                        lista = new PartidoLista
+                        {
+                            Id = Guid.NewGuid(),
+                            EleccionId = eleccionId,
+                            Nombre = codigo,
+                            Codigo = codigo,
+                            LogoUrl = null
+                        };
+                        _db.PartidosListas.Add(lista);
+                        await _db.SaveChangesAsync(ct);
+                    }
+                    listaId = lista.Id;
+                }
             }
-
             var c = new Candidato
             {
                 Id = Guid.NewGuid(),

@@ -292,7 +292,8 @@ public class AdminController : Controller
             }
             else
             {
-                errorNames.Add(row.NombreCompleto);
+                var reason = string.IsNullOrWhiteSpace(resp?.Message) ? "Error al crear" : resp.Message;
+                errorNames.Add($"{row.NombreCompleto} ({reason})");
             }
         }
 

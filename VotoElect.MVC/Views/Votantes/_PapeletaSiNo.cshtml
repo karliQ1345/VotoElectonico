@@ -1,0 +1,147 @@
+﻿@model VotoElect.MVC.ApiContracts.BoletaDataDto
+@{
+    // Candidatos de la boleta (presidencial)
+    var candidatos = Model?.Candidatos ?? new List<VotoElect.MVC.ApiContracts.BoletaCandidatoDto>();
+
+    // Por si viene nulo o mal
+    var titulo = (Model?.Titulo ?? "Papeleta").Trim();
+}
+
+<style>
+    .cne-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-top: 14px;
+    }
+
+    .cne-card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fff;
+        cursor: pointer;
+        transition: transform .06s ease-in-out, box-shadow .06s ease-in-out, border-color .06s ease-in-out;
+    }
+
+        .cne-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0,0,0,.06);
+            border-color: #caa15a;
+        }
+
+        .cne-card input[type="radio"] {
+            transform: scale(1.15);
+            margin-right: 10px;
+        }
+
+    .cne-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .cne-img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #eee;
+        background: #fafafa;
+    }
+
+    .cne-name {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .cne-sub {
+        margin: 3px 0 0 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .cne-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .cne-muted {
+        color: #666;
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    .cne-empty {
+        padding: 12px;
+        border: 1px dashed #bbb;
+        border-radius: 10px;
+        background: rgba(0,0,0,.02);
+        margin-top: 10px;
+    }
+</style>
+
+<h3 class="mb-2">Selecciona tu opción (Presidencial)</h3>
+
+@if (candidatos.Count == 0)
+{
+    <div class="cne-empty">
+        No hay candidatos cargados para esta elección.
+        <br />
+        Verifica que subiste el Excel a la elección correcta y que la boleta activa corresponde a “Presidente_SiNoBlanco”.
+    </div>
+}
+else
+{
+    <div class="cne-grid">
+        @* Candidatos: votar por 1 *@
+        @foreach (var c in candidatos)
+        {
+            // Nota: tu DTO tiene CandidatoId, NO Id.
+            var cid = (c.CandidatoId ?? "").Trim();
+            var nombre = (c.NombreCompleto ?? "Candidato").Trim();
+            var cargo = (c.Cargo ?? "Presidente").Trim();
+            var foto = (c.FotoUrl ?? "").Trim();
+
+            <label class="cne-card">
+                <div class="cne-option">
+                    <input type="radio" name="presidenteCandidatoId" value="@cid" required />
+                    <span>Votar</span>
+                </div>
+
+                <div class="cne-head">
+                    @if (!string.IsNullOrWhiteSpace(foto))
+                    {
+                        <img class="cne-img" src="@foto" alt="@nombre" />
+                    }
+                    else
+                    {
+                        <div class="cne-img d-flex align-items-center justify-content-center">
+                            <span class="text-muted">Sin foto</span>
+                        </div>
+                    }
+
+                    <div>
+                        <p class="cne-name">@nombre</p>
+                        <p class="cne-sub">@cargo</p>
+                    </div>
+                </div>
+            </label>
+        }
+
+        @* Opción BLANCO: sin candidato *@
+        <label class="cne-card">
+            <div class="cne-option">
+                <input type="radio" name="presidenteCandidatoId" value="BLANCO" required />
+                <span>BLANCO</span>
+            </div>
+            <div class="cne-muted">Voto en blanco</div>
+        </label>
+    </div>
+}

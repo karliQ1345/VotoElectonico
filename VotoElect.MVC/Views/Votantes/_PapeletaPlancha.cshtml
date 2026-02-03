@@ -1,0 +1,176 @@
+﻿@using VotoElect.MVC.ApiContracts
+@model BoletaDataDto
+@{
+    // Agrupar candidatos por lista para pintarlos dentro de cada opción
+    var candPorLista = Model.Candidatos
+        .Where(c => !string.IsNullOrWhiteSpace(c.PartidoListaId))
+        .GroupBy(c => c.PartidoListaId!)
+        .ToDictionary(
+            g => g.Key,
+            g => g.OrderBy(x => x.Cargo).ThenBy(x => x.NombreCompleto).ToList()
+        );
+
+    // Si tienes códigos tipo "5-A", esto igual ordena decente por string
+    var listas = Model.Listas.OrderBy(l => l.Codigo).ToList();
+
+    var max = Model.MaxSeleccionIndividual ?? 0;
+    var permiteIndividual = max > 0; // Asambleístas
+}
+
+<div class="boleta-wrap">
+
+    @* Caso típico Presidencial por plancha: solo listas *@
+    @if (!permiteIndividual)
+    {
+        <div class="boleta-grid">
+            @foreach (var l in listas)
+            {
+                candPorLista.TryGetValue(l.PartidoListaId, out var cands);
+
+                <label class="boleta-opcion">
+                    <input type="radio" name="partidoListaId" value="@l.PartidoListaId" required />
+                    <div class="boleta-card">
+                        <div class="boleta-head">
+                            <div class="boleta-lista">
+                                <div class="boleta-codigo">@l.Codigo</div>
+                                <div class="boleta-nombre">@l.Nombre</div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(l.LogoUrl))
+                            {
+                                <img class="boleta-logo" src="@l.LogoUrl" alt="Logo @l.Nombre" />
+                            }
+                        </div>
+
+                        <div class="boleta-body">
+                            @if (cands != null && cands.Count > 0)
+                            {
+                                <div class="boleta-cands">
+                                    @foreach (var c in cands)
+                                    {
+                                        <div class="boleta-cand">
+                                            @if (!string.IsNullOrWhiteSpace(c.FotoUrl))
+                                            {
+                                                <img class="boleta-foto" src="@c.FotoUrl" alt="Foto de @c.NombreCompleto" />
+                                            }
+                                            <div class="boleta-cand-txt">
+                                                <div class="boleta-cand-nombre">@c.NombreCompleto</div>
+                                                <div class="boleta-cand-cargo text-muted">@c.Cargo</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted small">Sin candidatos asignados a esta lista.</div>
+                            }
+                        </div>
+                    </div>
+                </label>
+            }
+        </div>
+    }
+    else
+    {
+        @* Caso asambleístas: plancha + voto individual (lo tuyo, pero presentable) *@
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <h5 class="mb-2">Voto por plancha</h5>
+
+                <div class="boleta-grid">
+                    @foreach (var l in listas)
+                    {
+                        candPorLista.TryGetValue(l.PartidoListaId, out var cands);
+
+                        <label class="boleta-opcion">
+                            <input type="radio" name="partidoListaId" value="@l.PartidoListaId" />
+                            <div class="boleta-card">
+                                <div class="boleta-head">
+                                    <div class="boleta-lista">
+                                        <div class="boleta-codigo">@l.Codigo</div>
+                                        <div class="boleta-nombre">@l.Nombre</div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(l.LogoUrl))
+                                    {
+                                        <img class="boleta-logo" src="@l.LogoUrl" alt="Logo @l.Nombre" />
+                                    }
+                                </div>
+
+                                <div class="boleta-body">
+                                    @if (cands != null && cands.Count > 0)
+                                    {
+                                        <div class="boleta-cands">
+                                            @foreach (var c in cands.Take(4))
+                                            {
+                                                <div class="boleta-cand">
+                                                    @if (!string.IsNullOrWhiteSpace(c.FotoUrl))
+                                                    {
+                                                        <img class="boleta-foto" src="@c.FotoUrl" alt="Foto de @c.NombreCompleto" />
+                                                    }
+                                                    <div class="boleta-cand-txt">
+                                                        <div class="boleta-cand-nombre">@c.NombreCompleto</div>
+                                                        <div class="boleta-cand-cargo text-muted">@c.Cargo</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted small">Sin candidatos asignados a esta lista.</div>
+                                    }
+                                </div>
+                            </div>
+                        </label>
+                    }
+                </div>
+
+                <div class="form-text">Si eliges plancha, no selecciones candidatos individuales.</div>
+            </div>
+
+            <div class="col-lg-6">
+                <h5 class="mb-2">Voto individual (máx @max)</h5>
+
+                <div class="list-group">
+                    @foreach (var c in Model.Candidatos)
+                    {
+                        <label class="list-group-item d-flex align-items-center gap-3">
+                            <input class="form-check-input candidatoChk" type="checkbox" name="candidatoIds" value="@c.CandidatoId" />
+                            @if (!string.IsNullOrWhiteSpace(c.FotoUrl))
+                            {
+                                <img src="@c.FotoUrl" alt="Foto de @c.NombreCompleto" class="rounded border" style="width:64px;height:64px;object-fit:cover;" />
+                            }
+                            <div>
+                                <div class="fw-bold">@c.NombreCompleto</div>
+                                <div class="text-muted">@c.Cargo</div>
+                            </div>
+                        </label>
+                    }
+                </div>
+
+                <div class="form-text">Si eliges candidatos, deja plancha en blanco.</div>
+            </div>
+        </div>
+
+        <script>
+            const planchas = document.querySelectorAll('input[name="partidoListaId"]');
+            const chks = document.querySelectorAll('.candidatoChk');
+            const max = parseInt("@max");
+
+            planchas.forEach(r => r.addEventListener('change', () => {
+                chks.forEach(c => c.checked = false);
+            }));
+
+            chks.forEach(c => c.addEventListener('change', () => {
+                if (c.checked) planchas.forEach(r => r.checked = false);
+
+                const selected = [...chks].filter(x => x.checked).length;
+                if (max > 0 && selected > max) {
+                    c.checked = false;
+                    alert("Máximo permitido: " + max);
+                }
+            }));
+        </script>
+    }
+</div>

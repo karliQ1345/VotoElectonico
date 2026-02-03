@@ -22,6 +22,7 @@ public class VotantesConfirmarVm
 
     // Presidente
     public string? OpcionPresidente { get; set; }
+    public string? PresidenteCandidatoId { get; set; }
 
     // Asambleistas
     public string? PartidoListaId { get; set; }

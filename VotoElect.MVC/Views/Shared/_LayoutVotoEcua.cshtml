@@ -16,7 +16,9 @@
 
     <link href="~/css/style.min.css" rel="stylesheet">
     <link href="~/css/votoecua-extras.css" rel="stylesheet">
-
+    @section Styles {
+        <link href="~/css/boleta.css" rel="stylesheet" asp-append-version="true" />
+    }
     @RenderSection("Styles", required: false)
 </head>
 

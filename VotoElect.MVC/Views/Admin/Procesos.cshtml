@@ -1,7 +1,7 @@
 ﻿@model VotoElect.MVC.ViewModels.AdminProcesosVm
 @{
     ViewData["Title"] = "Procesos Electorales";
-    Layout = "_LayoutVotoSimpleFooter";
+    Layout = "_LayoutAdmin";
 }
 
 <div class="container-fluid py-4">
@@ -16,8 +16,9 @@
         <div class="alert alert-danger">@Model.Error</div>
     }
 
-    <div class="row g-3">
-        <div class="col-lg-5">
+    <div class="row">
+        <!-- Columna izquierda -->
+        <div class="col-lg-5 mb-3">
             <div class="p-4 card-soft">
                 <h4 class="mb-3">Crear proceso</h4>
 
@@ -28,9 +29,11 @@
                         <label class="font-weight-bold">Nombre</label>
                         <input asp-for="Nombre" class="form-control" placeholder="Elección General 2026" />
                     </div>
-                     <div class="mb-3">
+
+                    <div class="mb-3">
                         <label class="font-weight-bold">Tipo de proceso</label>
-                        <select asp-for="TipoProceso" class="form-select" required>
+                        <!-- Bootstrap 4: form-control (no form-select) -->
+                        <select asp-for="TipoProceso" class="form-control" required>
                             <option value="Asambleistas">Asambleístas</option>
                             <option value="Presidente_SiNoBlanco">Presidentes (SI/NO/BLANCO)</option>
                         </select>
@@ -50,28 +53,26 @@
                         <input asp-for="FinUtc" type="datetime-local" class="form-control" />
                     </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary w-100">Crear</button>
-
-                       
-                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Crear</button>
                 </form>
             </div>
+        </div>
 
-            <!-- ✅ BLOQUE SEPARADO: Carga masiva (otro form aparte) -->
-            <div class="col-lg-7">
+        <!-- Columna derecha -->
+        <div class="col-lg-7 mb-3">
             <div class="p-4 card-soft">
                 <h4 class="mb-3">Listado</h4>
 
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table w-100">
                         <thead>
                             <tr>
                                 <th>Nombre</th>
                                 <th>Estado</th>
                                 <th>Padrón</th>
                                 <th>Ventana</th>
-                                <th class="text-end">Acciones</th>
+                                <!-- Bootstrap 4: text-right (no text-end) -->
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -80,11 +81,12 @@
                                 var sinPadron = !p.PadronCargado;
 
                                 <tr>
-                                       <td>
-                                        <div class="fw-semibold">@p.Nombre</div>
-
+                                    <td>
+                                        <!-- Bootstrap 4: no fw-semibold -->
+                                        <div style="font-weight:600">@p.Nombre</div>
                                         <div class="text-muted small">@p.ProcesoElectoralId</div>
                                     </td>
+
                                     <td>@p.Estado</td>
 
                                     <td>
@@ -98,16 +100,19 @@
                                         }
                                     </td>
 
-                                    <td>@p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <!-- evita que la ventana se parta raro -->
+                                    <td class="text-nowrap">
+                                        @p.InicioUtc.ToString("yyyy-MM-dd HH:mm") — @p.FinUtc.ToString("yyyy-MM-dd HH:mm")
+                                    </td>
 
-                                    <td class="text-end">
-                                        <!-- ✅ Padrón por proceso -->
+                                    <td class="text-right text-nowrap">
                                         <a class="btn btn-outline-primary btn-sm"
                                            asp-controller="Admin"
                                            asp-action="Padron"
                                            asp-route-procesoId="@p.ProcesoElectoralId">
                                             Padrón
                                         </a>
+
                                         <a class="btn btn-outline-secondary btn-sm"
                                            asp-controller="Admin"
                                            asp-action="Candidatos"
@@ -147,3 +152,4 @@
         </div>
     </div>
 </div>
+

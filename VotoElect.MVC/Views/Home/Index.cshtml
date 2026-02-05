@@ -53,13 +53,6 @@
                         <b>Mensaje:</b> <span id="estadoMsg">--</span>
                     </p>
 
-                    <div class="mt-4">
-                        <div class="form-hint mb-2">Modo demo (solo UI):</div>
-                        <div class="custom-control custom-switch">
-                            <input type="checkbox" class="custom-control-input" id="toggleFinalizado">
-                            <label class="custom-control-label" for="toggleFinalizado">Simular proceso finalizado</label>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -85,36 +78,30 @@
                                     <div class="display-4 m-0" id="totalVotos">0</div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
-                                    <div class="small-muted mb-1">Juntas reportadas</div>
-                                    <div class="display-4 m-0" id="juntasReportadas">0</div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
-                            <div class="font-weight-bold mb-2">Distribución (demo)</div>
+                            <div class="font-weight-bold mb-2">Distribución</div>
 
                             <div class="mb-2 d-flex justify-content-between">
-                                <span>Candidato A</span><span class="mono" id="aPct">0%</span>
+                                <span id="lblA">Candidato A</span><span class="mono" id="aPct">0%</span>
                             </div>
                             <div class="progress mb-3" style="height: 12px;">
                                 <div class="progress-bar" role="progressbar" id="aBar" style="width:0%"></div>
                             </div>
 
                             <div class="mb-2 d-flex justify-content-between">
-                                <span>Candidato B</span><span class="mono" id="bPct">0%</span>
+                                <span id="lblB">Candidato B</span><span class="mono" id="bPct">0%</span>
                             </div>
                             <div class="progress mb-3" style="height: 12px;">
                                 <div class="progress-bar" role="progressbar" id="bBar" style="width:0%"></div>
                             </div>
 
                             <div class="mb-2 d-flex justify-content-between">
-                                <span>Blanco</span><span class="mono" id="blPct">0%</span>
+                                <span id="lblBl">Blanco</span><span class="mono" id="blPct">0%</span>
                             </div>
                             <div class="progress" style="height: 12px;">
-                                <div class="progress-bar" role="progressbar" id="blBar" style="width:0%"></div>
+                                <div class="progress-bar" role="progressbar" id="aBar" style="width:0%"></div>
                             </div>
 
                             <hr>
@@ -162,79 +149,57 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script>
         // --- Estado / UI ---
         const estadoPill = document.getElementById("estadoPill");
-        const estadoMsg  = document.getElementById("estadoMsg");
-        const rango      = document.getElementById("rangoProceso");
+        const estadoMsg = document.getElementById("estadoMsg");
+        const rango = document.getElementById("rangoProceso");
         const bloqueEnProceso = document.getElementById("bloqueEnProceso");
         const bloqueFinalizado = document.getElementById("bloqueFinalizado");
-        const toggle = document.getElementById("toggleFinalizado");
 
         // --- Filtros + salida ---
         const dimensionSelect = document.getElementById("dimensionSelect");
         const tablaResultados = document.getElementById("tablaResultados");
 
-        // --- Datos demo (se mantienen) ---
-        const proceso = {
-          nombre: "Elección General (Demo)",
-          inicio: "2026-01-20 08:00",
-          fin: "2026-01-27 17:00",
-          estado: "EN_PROCESO" // EN_PROCESO | FINALIZADO
-        };
-
-        const resultadosDemo = {
-          juntasReportadas: 48,
-          totalVotos: 152340,
-          candidatoA: 71320,
-          candidatoB: 74210,
-          blanco: 6810
-        };
-
-        // --- Helpers UI ---
-        function setEnProceso(){
-          estadoPill.className = "pill pill-warn";
-          estadoPill.textContent = "En proceso";
-          estadoMsg.textContent = "Proceso electoral en proceso; resultados no visibles todavía.";
-          bloqueEnProceso.style.display = "block";
-          bloqueFinalizado.style.display = "none";
-          tablaResultados.innerHTML = "";
+        function escapeHtml(str) {
+            return String(str ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
         }
 
-        function setFinalizado(){
-          estadoPill.className = "pill pill-ok";
-          estadoPill.textContent = "Finalizado";
-          estadoMsg.textContent = "Resultados publicados.";
-          bloqueEnProceso.style.display = "none";
-          bloqueFinalizado.style.display = "block";
+        function getVotos(x) {
+            // soporta camelCase y PascalCase
+            return Number(x?.votos ?? x?.Votos ?? 0);
         }
 
-        function escapeHtml(str){
-          return String(str)
-            .replaceAll("&","&amp;")
-            .replaceAll("<","&lt;")
-            .replaceAll(">","&gt;")
-            .replaceAll('"',"&quot;")
-            .replaceAll("'","&#039;");
+        function getOpcion(x) {
+            return String(x?.opcion ?? x?.Opcion ?? "");
         }
 
-        function renderTabla(dimension, actualizadoUtc, items){
-          if(!items || items.length === 0){
-            tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
-            return;
-          }
+                   function renderTabla(dimension, actualizadoUtc, items, map) {
+        if(!items || items.length === 0){
+          tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
+          return;
+        }
 
-          items.sort((a,b)=> (b.votos||0) - (a.votos||0));
+                   items.sort((a,b)=> getVotos(b) - getVotos(a));
 
-          const filas = items.map(it => `
-            <tr>
-              <td>${escapeHtml(it.dimensionValor ?? "")}</td>
-              <td>${escapeHtml(it.opcion ?? "")}</td>
-              <td class="text-right">${Number(it.votos||0).toLocaleString("es-EC")}</td>
-            </tr>
-          `).join("");
+          const filas = items.map(it => {
+            const opcion = getOpcion(it);
+            const opcionNombre = (map && map[opcion]) ? map[opcion] : opcion;
+
+            return `
+              <tr>
+                <td>${escapeHtml(it.dimensionValor ?? it.DimensionValor ?? "")}</td>
+                <td>${escapeHtml(opcionNombre)}</td>
+                <td class="text-right">${getVotos(it).toLocaleString("es-EC")}</td>
+              </tr>
+            `;
+          }).join("");
 
           const utc = actualizadoUtc ? String(actualizadoUtc).replace("T"," ").substring(0,16) : "--";
 
@@ -257,74 +222,144 @@
           `;
         }
 
-        // --- DEMO de “Distribución” (solo UI) ---
-        function renderDistribucionDemo(){
-          const total = resultadosDemo.candidatoA + resultadosDemo.candidatoB + resultadosDemo.blanco;
-          const a = Math.round((resultadosDemo.candidatoA/total)*100);
-          const b = Math.round((resultadosDemo.candidatoB/total)*100);
-          const bl = Math.max(0, 100 - a - b);
-
-          document.getElementById("totalVotos").textContent = resultadosDemo.totalVotos.toLocaleString("es-EC");
-          document.getElementById("juntasReportadas").textContent = resultadosDemo.juntasReportadas.toLocaleString("es-EC");
-
-          document.getElementById("aPct").textContent = a + "%";
-          document.getElementById("bPct").textContent = b + "%";
-          document.getElementById("blPct").textContent = bl + "%";
-
-          document.getElementById("aBar").style.width = a + "%";
-          document.getElementById("bBar").style.width = b + "%";
-          document.getElementById("blBar").style.width = bl + "%";
+        function setTexto(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text ?? "";
         }
 
-        // --- Cargar reporte real desde MVC (/Resultados/Data) ---
-        async function cargarReporte(){
-          if(proceso.estado !== "FINALIZADO") return;
+        function setPill(text, cls) {
+            if (!estadoPill) return;
+            estadoPill.className = cls;
+            estadoPill.textContent = text;
+        }
+
+        function mostrarEnProceso(enProceso) {
+            if (bloqueEnProceso) bloqueEnProceso.style.display = enProceso ? "" : "none";
+            if (bloqueFinalizado) bloqueFinalizado.style.display = enProceso ? "none" : "";
+        }
+
+        function fmt(d) {
+            if (!(d instanceof Date) || isNaN(d.getTime())) return "--";
+            return d.toISOString().slice(0, 16).replace("T", " ");
+        }
+
+        let _procesoIdActual = null;
+
+        async function cargarEstadoYResultados() {
+            try {
+                const estadoResp = await fetch("/Resultados/Estado");
+                const estadoJson = await estadoResp.json();
+
+                if (!estadoJson.ok) {
+                    setTexto("estadoMsg", estadoJson.message || "Sin proceso.");
+                    setTexto("rangoProceso", "--");
+                    setPill("Sin proceso", "pill pill-warn");
+                    mostrarEnProceso(true);
+                    _procesoIdActual = null;
+                    if (tablaResultados) tablaResultados.innerHTML = "";
+                    return;
+                }
+
+                const p = estadoJson.data || {};
+                const procesoId = p.procesoElectoralId || p.ProcesoElectoralId;
+                const estado = String(p.estado || p.Estado || "");
+
+                _procesoIdActual = procesoId;
+
+                const inicio = new Date(p.inicioUtc || p.InicioUtc);
+                const fin = new Date(p.finUtc || p.FinUtc);
+                setTexto("rangoProceso", `${fmt(inicio)} — ${fmt(fin)}`);
+
+                const esActivo = estado.toLowerCase().includes("activo");
+
+                if (esActivo) {
+                    setPill("En proceso", "pill pill-warn");
+                    setTexto("estadoMsg", "Proceso electoral en proceso; resultados parciales.");
+                    mostrarEnProceso(true);   // SOLO mensaje
+                } else {
+                    setPill("Finalizado", "pill pill-ok");
+                    setTexto("estadoMsg", "Resultados publicados.");
+                    mostrarEnProceso(false);  // MOSTRAR resultados
+                }
+
+                await cargarReporte();
+            } catch (e) {
+                setTexto("estadoMsg", "Error consultando el estado.");
+                setTexto("rangoProceso", "--");
+                setPill("Error", "pill pill-warn");
+                mostrarEnProceso(true);
+                _procesoIdActual = null;
+                if (tablaResultados) tablaResultados.innerHTML = "";
+            }
+        }
+
+               async function cargarReporte() {
+          if (!_procesoIdActual) return;
 
           const dim = (dimensionSelect?.value || "Provincia");
-          tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
+          if (tablaResultados) tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
 
-          try{
-            const res = await fetch(`/Resultados/Data?dimension=${encodeURIComponent(dim)}`);
+          try {
+            // 1) tabla por dimensión
+            const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
             const data = await res.json();
 
-            if(!data.ok){
-              tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
+            if (!data.ok) {
+              if (tablaResultados) {
+                tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
+              }
               return;
             }
 
-            renderTabla(data.dimension, data.actualizadoUtc, data.items);
+            // 2) mapa GUID -> nombre (ANTES de renderizar tabla)
+            const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
+            const mapJson = await mapResp.json();
+            const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
 
-          }catch(err){
-            tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
+            // 3) render tabla ya “traducida”
+            renderTabla(data.dimension || dim, data.actualizadoUtc, data.items || [], map);
+
+            // 4) nacional
+            const resNat = await fetch(`/Resultados/Nacional?procesoId=${encodeURIComponent(_procesoIdActual)}`);
+            const nat = await resNat.json();
+            if (!nat.ok) return;
+
+            const total = Number(nat.totalVotos || 0);
+            setTexto("totalVotos", total.toLocaleString("es-EC"));
+
+            renderBar("a", nat.top1, total, map, false);
+            renderBar("b", nat.top2, total, map, false);
+            renderBar("bl", nat.blanco, total, map, true);
+
+          } catch (err) {
+            if (tablaResultados) {
+              tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
+            }
           }
         }
 
-        function renderProceso(){
-          rango.textContent = `${proceso.inicio} — ${proceso.fin}`;
+        function renderBar(prefix, item, total, map, esBlanco) {
+            const lbl = document.getElementById(prefix === "a" ? "lblA" : prefix === "b" ? "lblB" : "lblBl");
+            const pctEl = document.getElementById(prefix + "Pct");
+            const bar = document.getElementById(prefix + "Bar");
 
-          if(proceso.estado === "FINALIZADO"){
-            setFinalizado();
-            renderDistribucionDemo();
-            cargarReporte();
-          }else{
-            setEnProceso();
-          }
+            const votos = getVotos(item);
+            const opcion = getOpcion(item);
+
+            const nombre = esBlanco ? "Blanco" : (map[opcion] || opcion || "N/D");
+            const pct = total > 0 ? Math.round((votos * 100.0) / total) : 0;
+
+            if (lbl) lbl.textContent = nombre;
+            if (pctEl) pctEl.textContent = pct + "%";
+            if (bar) bar.style.width = pct + "%";
         }
 
-        toggle.addEventListener("change", (e)=>{
-          proceso.estado = e.target.checked ? "FINALIZADO" : "EN_PROCESO";
-          renderProceso();
-        });
-
-        if(dimensionSelect){
-          dimensionSelect.addEventListener("change", ()=> {
-            if(proceso.estado === "FINALIZADO") cargarReporte();
-          });
+        // listeners
+        if (dimensionSelect) {
+            dimensionSelect.addEventListener("change", () => cargarReporte());
         }
 
-        // init
-        renderProceso();
+        // init real
+        document.addEventListener("DOMContentLoaded", () => cargarEstadoYResultados());
     </script>
 }
-
-

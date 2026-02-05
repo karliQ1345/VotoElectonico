@@ -37,7 +37,19 @@
                     </span>
 
                     <hr />
+                    <hr />
 
+                    <form asp-action="FinalizarJunta" method="post"
+                          onsubmit="return confirm('¿Seguro que deseas finalizar la junta?\\n\\nEsto bloqueará nuevos códigos y ya nadie podrá votar desde esta junta.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger w-100 font-weight-bold">
+                            <i class="fas fa-lock mr-2"></i>Finalizar junta
+                        </button>
+                    </form>
+
+                    <div class="small-muted mt-2">
+                        Al finalizar, ya no se podrán generar códigos ni registrar votos en esta junta.
+                    </div>
                     <!-- Jefe vota sin pedir código -->
                    @if (Model.Panel.BotonIrAVotarDisponible)
 {

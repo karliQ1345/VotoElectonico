@@ -79,6 +79,14 @@
                             @foreach (var p in Model.Procesos)
                             {
                                 var sinPadron = !p.PadronCargado;
+                                var sinCandidatos = !p.CandidatosCargados;
+                            var noPuedeActivar = sinPadron || sinCandidatos;
+
+                       var title = sinPadron
+                         ? "Cargue el padrón antes de activar"
+                             : sinCandidatos
+                       ? "Cargue los candidatos antes de activar"
+                               : "";
 
                                 <tr>
                                     <td>
@@ -120,16 +128,16 @@
                                             Candidatos
                                         </a>
 
-                                        <form asp-action="Activar" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
+                                      <form asp-action="Activar" method="post" class="d-inline">
+                           @Html.AntiForgeryToken()
+                         <input type="hidden" name="procesoId" value="@p.ProcesoElectoralId" />
 
-                                            <button type="submit"
-                                                    class="btn btn-outline-dark btn-sm"
-                                                    @(sinPadron ? "disabled title=\"Cargue el padrón antes de activar\"" : "")>
-                                                Activar
-                                            </button>
-                                        </form>
+                    <button type="submit"
+                         class="btn btn-outline-dark btn-sm"
+                            @(noPuedeActivar ? $"disabled title=\"{title}\"" : "")>
+                              Activar
+                                   </button>
+                                   </form>
 
                                         <form asp-action="Finalizar" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()

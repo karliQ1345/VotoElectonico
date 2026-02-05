@@ -1,34 +1,48 @@
 ﻿@model VotantesPapeletaVm
 @{
     ViewData["Title"] = "Papeleta";
+    ViewData["Navbar"] = "None";
+    ViewData["Footer"] = false;
+    ViewData["BodyClass"] = "layout-root layout-votante";
+
     var b = Model.Boleta;
     var tipo = (b.TipoEleccion ?? "").Trim();
     var esSiNo = tipo.Equals("Presidente_SiNoBlanco", StringComparison.OrdinalIgnoreCase);
 }
 
-<h2 class="mb-1">@b.Titulo</h2>
-<p class="text-muted">Selecciona tu opción y confirma.</p>
+<div class="vote-shell">
+    <div class="vote-card vote-card-wide">
+        <div class="mb-3">
+            <h2 class="mb-1">@b.Titulo</h2>
+            <p class="text-muted mb-0">Selecciona tu opción y confirma.</p>
+        </div>
 
-@if (!string.IsNullOrWhiteSpace(Model.Error))
-{
-    <div class="alert alert-danger">@Model.Error</div>
-}
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger mb-3">@Model.Error</div>
+        }
 
-<form method="post" asp-action="Confirmar">
-    <input type="hidden" name="procesoElectoralId" value="@b.ProcesoElectoralId" />
-    <input type="hidden" name="eleccionId" value="@b.EleccionId" />
-    <input type="hidden" name="tipoEleccion" value="@b.TipoEleccion" />
+        <form method="post" asp-action="Confirmar">
+            <input type="hidden" name="procesoElectoralId" value="@b.ProcesoElectoralId" />
+            <input type="hidden" name="eleccionId" value="@b.EleccionId" />
+            <input type="hidden" name="tipoEleccion" value="@b.TipoEleccion" />
 
-    @* SiNo solo cuando de verdad sea plebiscito *@
-    @if (esSiNo)
-    {
-        <partial name="_PapeletaSiNo" model="b" />
-    }
-    else
-    {
-        <partial name="_PapeletaPlancha" model="b" />
-    }
+            <div class="vote-content">
+                @if (esSiNo)
+                {
+                    <partial name="_PapeletaSiNo" model="b" />
+                }
+                else
+                {
+                    <partial name="_PapeletaPlancha" model="b" />
+                }
+            </div>
 
-    <button class="btn btn-primary mt-3">Confirmar</button>
-</form>
+            <div class="d-flex justify-content-start mt-4">
+                <button class="btn btn-primary px-4">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 

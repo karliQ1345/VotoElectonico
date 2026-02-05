@@ -1,34 +1,52 @@
 ﻿@model VotantesConfirmarVm
 @{
     ViewData["Title"] = "Confirmar voto";
+    ViewData["Navbar"] = "None";
+    ViewData["Footer"] = false;
+    ViewData["BodyClass"] = "layout-root layout-votante";
+
 }
 
-<h2>Confirmar voto</h2>
+<div class="vote-shell">
+    <div class="vote-card">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+            <div>
+                <h2 class="mb-1">Confirmar voto</h2>
+                <div class="text-muted">Revisa el resumen antes de emitir.</div>
+            </div>
+        </div>
 
-@if (!string.IsNullOrWhiteSpace(Model.Error))
-{
-    <div class="alert alert-danger">@Model.Error</div>
-}
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger mb-3">@Model.Error</div>
+        }
 
-<div class="alert alert-info">
-    <b>Resumen:</b> @Model.Resumen
+        <div class="alert alert-info mb-4">
+            <b>Resumen:</b> @Model.Resumen
+        </div>
+
+        <form method="post" asp-action="Emitir" class="d-flex flex-wrap gap-2">
+            <input type="hidden" asp-for="ProcesoElectoralId" />
+            <input type="hidden" asp-for="EleccionId" />
+            <input type="hidden" asp-for="TipoEleccion" />
+            <input type="hidden" asp-for="PresidenteCandidatoId" />
+            <input type="hidden" asp-for="OpcionPresidente" />
+            <input type="hidden" asp-for="PartidoListaId" />
+
+            @for (int i = 0; i < Model.CandidatoIds.Count; i++)
+            {
+                <input type="hidden" name="CandidatoIds[@i]" value="@Model.CandidatoIds[i]" />
+            }
+
+            <button class="btn btn-success px-4">Emitir voto</button>
+            <a asp-action="Papeleta" class="btn btn-outline-secondary px-4">Volver</a>
+        </form>
+
+        <div class="text-muted small mt-3">
+            No cierres la ventana hasta ver el comprobante.
+        </div>
+    </div>
 </div>
 
-<form method="post" asp-action="Emitir">
-    <input type="hidden" asp-for="ProcesoElectoralId" />
-    <input type="hidden" asp-for="EleccionId" />
-    <input type="hidden" asp-for="TipoEleccion" />
-    <input type="hidden" asp-for="PresidenteCandidatoId" />
-    <input type="hidden" asp-for="OpcionPresidente" />
-    <input type="hidden" asp-for="PartidoListaId" />
-
-    @for (int i = 0; i < Model.CandidatoIds.Count; i++)
-    {
-        <input type="hidden" name="CandidatoIds[@i]" value="@Model.CandidatoIds[i]" />
-    }
-
-    <button class="btn btn-success">Emitir voto</button>
-    <a asp-action="Papeleta" class="btn btn-outline-secondary">Volver</a>
-</form>
 
 

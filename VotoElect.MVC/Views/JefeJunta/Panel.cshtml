@@ -1,8 +1,12 @@
 ﻿@model VotoElect.MVC.ViewModels.JefePanelVm
 @{
+    Layout = "_LayoutEcua";
     ViewData["Title"] = "Jefe de Junta";
+    ViewData["Navbar"] = "Panel";
+    ViewData["Footer"] = true;
+
     var ver = Model.Verificacion;
-    Layout = "_LayoutJefeJunta";
+
 }
 
 <div class="container py-4">

@@ -1,7 +1,9 @@
 ﻿@model VotoElect.MVC.ViewModels.AdminCandidatosVm
 @{
-    ViewData["Title"] = "Gestionar Candidatos";
-    Layout = "_LayoutVotoSimpleFooter";
+    Layout = "_LayoutEcua";
+    ViewData["Title"] = "Procesos";
+    ViewData["Navbar"] = "Panel";  // o "Public" o "None"
+    ViewData["Footer"] = true;     // o false
 }
 <h2>Carga masiva de candidatos</h2>
 
@@ -18,7 +20,14 @@
      <div class="col-lg-12">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Carga masiva de candidatos</h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">Carga masiva de candidatos</h5>
+                    <a class="btn btn-outline-secondary"
+                       asp-controller="Admin"
+                       asp-action="Procesos">
+                        Volver
+                    </a>
+                </div>
                 <p class="small text-muted mb-3">
                     El Excel no requiere el ID del proceso; se asigna automáticamente según el proceso seleccionado.
                 </p>

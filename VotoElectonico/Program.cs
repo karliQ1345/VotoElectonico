@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -8,6 +8,9 @@ using VotoElectonico.Data;
 using VotoElectonico.Options;
 using VotoElectonico.Services.Auth;
 using VotoElectonico.Services.Email;
+using Serilog;
+using Serilog.Context;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace VotoElectonico
 {
@@ -16,6 +19,11 @@ namespace VotoElectonico
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Host.UseSerilog((ctx, lc) =>
+            {
+                lc.ReadFrom.Configuration(ctx.Configuration);
+            });
 
             // Controllers + Swagger
             builder.Services.AddControllers();
@@ -27,11 +35,14 @@ namespace VotoElectonico
                 o.AddPolicy("DefaultCors", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             });
 
-            // Db
+            // Db (SplitQuery para bajar el warning)
             builder.Services.AddDbContext<ApplicationDbContext>(opt =>
             {
                 var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-                opt.UseNpgsql(cs);
+                opt.UseNpgsql(cs, npgsql =>
+                {
+                    npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                });
             });
 
             // Options
@@ -45,11 +56,9 @@ namespace VotoElectonico
             // Services (Email + TwoFactor + Token)
             builder.Services.AddScoped<IEmailSender, BrevoEmailSender>();
             builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
-
-            //JWT Token generator
             builder.Services.AddScoped<ITokenService, TokenService>();
 
-            //AUTH JWT
+            // AUTH JWT
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -66,7 +75,7 @@ namespace VotoElectonico
                         ValidIssuer = builder.Configuration["Jwt:Issuer"],
                         ValidAudience = builder.Configuration["Jwt:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
                         ),
 
                         RoleClaimType = ClaimTypes.Role,
@@ -95,8 +104,8 @@ namespace VotoElectonico
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
                 {
-                    {
                     new OpenApiSecurityScheme
                     {
                         Reference = new OpenApiReference
@@ -106,12 +115,39 @@ namespace VotoElectonico
                         }
                     },
                     Array.Empty<string>()
-                    }
-                });
+                }
             });
+            });
+
             builder.Services.AddAuthorization();
 
+            // Forwarded Headers config (Render/Azure)
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders =
+                    ForwardedHeaders.XForwardedFor |
+                    ForwardedHeaders.XForwardedProto;
+
+                // Si NO pones esto, a veces no toma el header cuando está detrás de proxy.
+                // Render/Azure manejan proxies dinámicos, así que esto evita drama.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
             var app = builder.Build();
+
+            // Forwarded headers DEBE ir temprano, antes de leer RemoteIpAddress y antes del logging
+            app.UseForwardedHeaders();
+
+            // Serilog request logging (después de forwarded headers)
+            app.UseSerilogRequestLogging(opts =>
+            {
+                opts.EnrichDiagnosticContext = (diag, http) =>
+                {
+                    diag.Set("RequestMethod", http.Request.Method);
+                    diag.Set("RequestPath", http.Request.Path.Value ?? "");
+                };
+            });
 
             if (app.Environment.IsDevelopment())
             {
@@ -121,12 +157,42 @@ namespace VotoElectonico
 
             app.UseCors("DefaultCors");
 
-            //Middleware JWT (orden importante)
+            // Middleware de auditoría (Ip/UserAgent/UserId/Role)
+            // Después de ForwardedHeaders para que RemoteIpAddress sea la IP real.
+            app.Use(async (ctx, next) =>
+            {
+                var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "";
+                var ua = ctx.Request.Headers.UserAgent.ToString();
+
+                var userId = ctx.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                             ?? ctx.User?.FindFirst("sub")?.Value
+                             ?? "";
+
+                var role = ctx.User?.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+                using (LogContext.PushProperty("Ip", ip))
+                using (LogContext.PushProperty("UserAgent", ua))
+                using (LogContext.PushProperty("UserId", userId))
+                using (LogContext.PushProperty("Role", role))
+                {
+                    await next();
+                }
+            });
+
+            // Middleware JWT (orden importante)
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
-            app.Run();
+
+            try
+            {
+                app.Run();
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
     }
 }

@@ -70,7 +70,17 @@ namespace VotoElectonico.Controllers
                     Estado = x.Estado.ToString(),
                     InicioUtc = x.InicioUtc,
                     FinUtc = x.FinUtc,
-                    PadronCargado = _db.PadronRegistros.Any(pr => pr.ProcesoElectoralId == x.Id)
+
+                    PadronCargado = _db.PadronRegistros.Any(pr => pr.ProcesoElectoralId == x.Id),
+                    PadronTotal = _db.PadronRegistros.Count(pr => pr.ProcesoElectoralId == x.Id),
+
+                    // Candidatos: cuenta candidatos de todas las elecciones del proceso
+                    CandidatosTotal = _db.Candidatos.Count(c =>
+                        _db.Elecciones.Any(e => e.Id == c.EleccionId && e.ProcesoElectoralId == x.Id)
+                    ),
+                    CandidatosCargados = _db.Candidatos.Any(c =>
+                        _db.Elecciones.Any(e => e.Id == c.EleccionId && e.ProcesoElectoralId == x.Id)
+                    )
                 })
                 .ToListAsync(ct);
 
@@ -91,7 +101,15 @@ namespace VotoElectonico.Controllers
             if (!tienePadron)
                 return BadRequest(ApiResponse<string>.Fail("No se puede activar: primero cargue el padrón electoral."));
 
+            // NUEVO: validar candidatos
+            var tieneCandidatos = await _db.Candidatos.AnyAsync(c =>
+                _db.Elecciones.Any(e => e.Id == c.EleccionId && e.ProcesoElectoralId == procesoId), ct);
+
+            if (!tieneCandidatos)
+                return BadRequest(ApiResponse<string>.Fail("No se puede activar: primero cargue los candidatos."));
+
             p.Estado = ProcesoEstado.Activo;
+
             var juntas = await _db.Juntas.ToListAsync(ct);
             foreach (var j in juntas)
             {
@@ -103,7 +121,6 @@ namespace VotoElectonico.Controllers
 
             return Ok(ApiResponse<string>.Success("OK", "Proceso activado y juntas reseteadas."));
         }
-
         [Authorize(Roles = nameof(RolTipo.Administrador))]
         [HttpPost("{procesoId:guid}/finalizar")]
         public async Task<ActionResult<ApiResponse<string>>> Finalizar(Guid procesoId, CancellationToken ct)

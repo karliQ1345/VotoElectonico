@@ -255,6 +255,41 @@ public class ApiService
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
         );
     }
+    public async Task<ApiResponse<long>?> GetJuntasReportadasPublicAsync(string procesoId, CancellationToken ct = default)
+    {
+        var url = $"api/public/procesos/{procesoId}/juntas-reportadas";
+
+        var resp = await Client().GetAsync(url, ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        Console.WriteLine($"[GetJuntasReportadasPublic] URL={url}");
+        Console.WriteLine($"[GetJuntasReportadasPublic] Status={(int)resp.StatusCode} {resp.StatusCode}");
+        Console.WriteLine($"[GetJuntasReportadasPublic] Body={raw}");
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return new ApiResponse<long> { Ok = false, Message = $"Respuesta vacía. HTTP {(int)resp.StatusCode} {resp.StatusCode}" };
+
+        if (!resp.IsSuccessStatusCode)
+            return new ApiResponse<long> { Ok = false, Message = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}: {raw}" };
+
+        return JsonSerializer.Deserialize<ApiResponse<long>>(
+            raw,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
+    public async Task<ApiResponse<ProcesoActivoDto>?> GetUltimoFinalizadoPublicAsync(CancellationToken ct = default)
+    {
+        var resp = await Client().GetAsync("api/public/procesos/ultimo-finalizado", ct);
+        var raw = await resp.Content.ReadAsStringAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return new ApiResponse<ProcesoActivoDto> { Ok = false, Message = "Respuesta vacía del API." };
+
+        return JsonSerializer.Deserialize<ApiResponse<ProcesoActivoDto>>(
+            raw, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
+    }
+
     public async Task<ApiResponse<JefeVerificarVotanteResponseDto>?> JefeVerificarAsync(JefeVerificarVotanteRequestDto req, string token, CancellationToken ct = default)
     {
         using var msg = new HttpRequestMessage(HttpMethod.Post, "api/juntas/verificar");
@@ -263,6 +298,21 @@ public class ApiService
 
         var resp = await Client().SendAsync(msg, ct);
         return await resp.Content.ReadFromJsonAsync<ApiResponse<JefeVerificarVotanteResponseDto>>(cancellationToken: ct);
+    }
+
+    public async Task<ApiResponse<FinalizarJuntaResponseDto>?> FinalizarJuntaAsync(
+    string procesoId, string token, CancellationToken ct = default)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/juntas/finalizar");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        msg.Content = JsonContent.Create(new FinalizarJuntaRequestDto
+        {
+            ProcesoElectoralId = procesoId
+        });
+
+        var resp = await Client().SendAsync(msg, ct);
+        return await resp.Content.ReadFromJsonAsync<ApiResponse<FinalizarJuntaResponseDto>>(cancellationToken: ct);
     }
 
     // ---- Admin

@@ -17,6 +17,8 @@ public class ProcesoResumenDto
     public DateTime FinUtc { get; set; }
     public bool PadronCargado { get; set; }
     public int PadronTotal { get; set; }
+    public bool CandidatosCargados { get; set; }
+    public int CandidatosTotal { get; set; }
 }
 
 public class IdResponseDto

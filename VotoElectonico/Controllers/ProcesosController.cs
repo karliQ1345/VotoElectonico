@@ -92,9 +92,16 @@ namespace VotoElectonico.Controllers
                 return BadRequest(ApiResponse<string>.Fail("No se puede activar: primero cargue el padrón electoral."));
 
             p.Estado = ProcesoEstado.Activo;
+            var juntas = await _db.Juntas.ToListAsync(ct);
+            foreach (var j in juntas)
+            {
+                j.Cerrada = false;
+                j.CerradaUtc = null;
+                j.CerradaPorJefeId = null;
+            }
             await _db.SaveChangesAsync(ct);
 
-            return Ok(ApiResponse<string>.Success("OK", "Proceso activado."));
+            return Ok(ApiResponse<string>.Success("OK", "Proceso activado y juntas reseteadas."));
         }
 
         [Authorize(Roles = nameof(RolTipo.Administrador))]

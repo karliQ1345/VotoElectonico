@@ -42,5 +42,35 @@ namespace VotoElectonico.Controllers
 
             return Ok(ApiResponse<ProcesoActivoDto>.Success(p));
         }
+
+        [HttpGet("ultimo-finalizado")]
+        public async Task<ActionResult<ApiResponse<ProcesoActivoDto>>> GetUltimoFinalizado(CancellationToken ct)
+        {
+            var p = await _db.ProcesosElectorales
+                .Where(x => x.Estado == ProcesoEstado.Finalizado)
+                .OrderByDescending(x => x.FinUtc)
+                .ThenByDescending(x => x.CreadoUtc)
+                .Select(x => new ProcesoActivoDto
+                {
+                    ProcesoElectoralId = x.Id.ToString(),
+                    Nombre = x.Nombre,
+                    InicioUtc = x.InicioUtc,
+                    FinUtc = x.FinUtc,
+                    Estado = x.Estado.ToString()
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (p == null)
+                return Ok(ApiResponse<ProcesoActivoDto>.Fail("No hay procesos finalizados."));
+
+            return Ok(ApiResponse<ProcesoActivoDto>.Success(p));
+        }
+
+        [HttpGet("{procesoId:guid}/juntas-reportadas")]
+        public async Task<ActionResult<ApiResponse<long>>> GetJuntasReportadas(Guid procesoId, CancellationToken ct)
+        {
+            var n = await _db.Juntas.CountAsync(j => j.Cerrada, ct);
+            return Ok(ApiResponse<long>.Success(n));
+        }
     }
 }

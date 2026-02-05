@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VotoElectonico.Data;
 using VotoElectonico.DTOs.Common;
+using VotoElectonico.DTOs.Email;
 using VotoElectonico.DTOs.Juntas;
 using VotoElectonico.Juntas;
 using VotoElectonico.Models;
 using VotoElectonico.Models.Enums;
+using VotoElectonico.Services.Email;
 using VotoElectonico.Utils;
 
 namespace VotoElectonico.Controllers
@@ -18,7 +20,13 @@ namespace VotoElectonico.Controllers
     public class JuntasController : BaseApiController
     {
         private readonly ApplicationDbContext _db;
-        public JuntasController(ApplicationDbContext db) => _db = db;
+        private readonly IEmailSender _email;
+
+        public JuntasController(ApplicationDbContext db, IEmailSender email)
+        {
+            _db = db;
+            _email = email;
+        }
 
         // GET api/juntas/panel/{procesoId}
         [HttpGet("panel/{procesoId:guid}")]
@@ -77,6 +85,17 @@ namespace VotoElectonico.Controllers
             var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.JefeJuntaUsuarioId == jefeId.Value, ct);
             if (junta == null)
                 return NotFound(ApiResponse<JefeVerificarVotanteResponseDto>.Fail("Junta no asignada."));
+
+            if (junta.Cerrada)
+            {
+                return Ok(ApiResponse<JefeVerificarVotanteResponseDto>.Success(new JefeVerificarVotanteResponseDto
+                {
+                    Permitido = false,
+                    Mensaje = "Esta junta ya fue finalizada. No se pueden generar más códigos.",
+                    Votante = null,
+                    CodigoUnico = null
+                }));
+            }
 
             var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == procesoId, ct);
             if (proceso == null)
@@ -228,6 +247,95 @@ namespace VotoElectonico.Controllers
             };
 
             return Ok(ApiResponse<JefeVerificarVotanteResponseDto>.Success(resp));
+        }
+
+        [HttpPost("finalizar")]
+        public async Task<ActionResult<ApiResponse<FinalizarJuntaResponseDto>>> Finalizar(
+            [FromBody] FinalizarJuntaRequestDto req,
+            CancellationToken ct)
+        {
+            if (!Guid.TryParse(req?.ProcesoElectoralId, out var procesoId))
+                return BadRequest(ApiResponse<FinalizarJuntaResponseDto>.Fail("ProcesoElectoralId inválido."));
+
+            var jefeId = GetUserId();
+            if (jefeId == null)
+                return Unauthorized(ApiResponse<FinalizarJuntaResponseDto>.Fail("Token inválido."));
+
+            var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == procesoId, ct);
+            if (proceso == null)
+                return NotFound(ApiResponse<FinalizarJuntaResponseDto>.Fail("Proceso no existe."));
+
+            var activo = proceso.Estado == ProcesoEstado.Activo
+                         && DateTime.UtcNow >= proceso.InicioUtc
+                         && DateTime.UtcNow <= proceso.FinUtc;
+
+            if (!activo)
+                return BadRequest(ApiResponse<FinalizarJuntaResponseDto>.Fail("Proceso no está activo."));
+
+            var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.JefeJuntaUsuarioId == jefeId.Value, ct);
+            if (junta == null)
+                return NotFound(ApiResponse<FinalizarJuntaResponseDto>.Fail("Junta no asignada."));
+
+            if (junta.Cerrada)
+            {
+                return Ok(ApiResponse<FinalizarJuntaResponseDto>.Success(new FinalizarJuntaResponseDto
+                {
+                    Ok = true,
+                    Mensaje = "La junta ya estaba finalizada.",
+                    JuntaCodigo = junta.Codigo,
+                    CerradaUtc = junta.CerradaUtc
+                }));
+            }
+
+            junta.Cerrada = true;
+            junta.CerradaUtc = DateTime.UtcNow;
+            junta.CerradaPorJefeId = jefeId.Value;
+
+            await _db.SaveChangesAsync(ct);
+            var admins = await _db.UsuarioRoles
+                .Where(r => r.Rol == RolTipo.Administrador)
+                .Select(r => r.Usuario.Email)
+                .Distinct()
+                .ToListAsync(ct);
+
+            var subject = $"Junta {junta.Codigo} finalizó su votación";
+
+            var html = $@"
+                <div style=""font-family:Arial,sans-serif;max-width:640px;margin:auto"">
+                <h2>Junta finalizada</h2>
+                <p>La junta <b>{junta.Codigo}</b> finalizó su votación.</p>
+
+                <div style=""border:1px solid #eee;border-radius:12px;padding:14px;background:#fafafa"">
+                <p><b>Proceso:</b> {proceso.Nombre}</p>
+                <p><b>Junta:</b> {junta.Codigo}</p>
+                <p><b>Provincia:</b> {junta.Provincia}</p>
+                <p><b>Cantón:</b> {junta.Canton}</p>
+                <p><b>Parroquia:</b> {junta.Parroquia}</p>
+                <p><b>Fecha (UTC):</b> {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC</p>
+                </div>
+
+                <p style=""font-size:12px;color:#666"">Mensaje automático del sistema de voto.</p>
+                </div>";
+
+            foreach (var mail in admins)
+            {
+                if (string.IsNullOrWhiteSpace(mail)) continue;
+
+                await _email.SendAsync(new SendEmailDto
+                {
+                    ToEmail = mail,
+                    ToName = "Administrador",
+                    Subject = subject,
+                    HtmlContent = html
+                }, ct);
+            }
+            return Ok(ApiResponse<FinalizarJuntaResponseDto>.Success(new FinalizarJuntaResponseDto
+            {
+                Ok = true,
+                Mensaje = "Junta finalizada. Ya no se permitirán más votaciones en esta junta.",
+                JuntaCodigo = junta.Codigo,
+                CerradaUtc = junta.CerradaUtc
+            }));
         }
     }
 }

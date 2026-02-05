@@ -74,6 +74,19 @@ namespace VotoElectonico.Controllers
                 return Ok(ApiResponse<IniciarVotacionResponseDto>.Success(new IniciarVotacionResponseDto { Habilitado = false, Mensaje = "Código incorrecto." }));
 
             var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == padron.JuntaId, ct);
+            if (junta == null)
+                return Ok(ApiResponse<IniciarVotacionResponseDto>.Success(new IniciarVotacionResponseDto
+                {
+                    Habilitado = false,
+                    Mensaje = "Junta no existe."
+                }));
+
+            if (junta.Cerrada)
+                return Ok(ApiResponse<IniciarVotacionResponseDto>.Success(new IniciarVotacionResponseDto
+                {
+                    Habilitado = false,
+                    Mensaje = "La junta ya fue finalizada."
+                }));
 
             return Ok(ApiResponse<IniciarVotacionResponseDto>.Success(new IniciarVotacionResponseDto
             {
@@ -302,66 +315,99 @@ namespace VotoElectonico.Controllers
             if (junta == null)
                 return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Junta no existe."));
 
-            // Guardar voto anónimo
-            var voto = new VotoAnonimo
+            if (junta.Cerrada)
+                return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("La junta ya fue finalizada. No se puede emitir voto."));
+
+            string opcion = "N/D";
+
+            if (eleccion.Tipo == EleccionTipo.Presidente_SiNoBlanco)
             {
-                Id = Guid.NewGuid(),
-                ProcesoElectoralId = procesoId,
-                EleccionId = eleccionId,
-                JuntaId = junta.Id,
-                EmitidoUtc = DateTime.UtcNow,
-                CipherTextBase64 = cipherB64,
-                NonceBase64 = nonceB64,
-                TagBase64 = tagB64,
-                KeyVersion = keyVer
-            };
+                var raw = (req.PresidenteCandidatoId ?? "").Trim();
 
-            _db.VotosAnonimos.Add(voto);
-
-            // Marcar sufragio + código usado
-            padron.YaVoto = true;
-            padron.VotoUtc = DateTime.UtcNow;
-
-            cod.Usado = true;
-            cod.UsadoUtc = DateTime.UtcNow;
-
-            // Comprobante (con identidad)
-            var comprobante = new ComprobanteVoto
-            {
-                Id = Guid.NewGuid(),
-                ProcesoElectoralId = procesoId,
-                EleccionId = eleccionId,
-                UsuarioId = user.Id,
-                JuntaId = junta.Id,
-                JefeJuntaUsuarioId = junta.JefeJuntaUsuarioId,
-                GeneradoUtc = DateTime.UtcNow,
-                EstadoEnvio = ComprobanteEstado.Pendiente,
-
-                PublicToken = CreatePublicToken(),
-                PublicTokenExpiraUtc = DateTime.UtcNow.AddHours(24)
-
-            };
-
-            _db.ComprobantesVoto.Add(comprobante);
-            //
-
-            await _db.SaveChangesAsync(ct);
-            var baseUrl = (_cfg["App:PublicBaseUrl"] ?? "").Trim().TrimEnd('/');
-            string? papeletaUrl = null;
-
-            if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(comprobante.PublicToken))
-            {
-                papeletaUrl = $"{baseUrl}/api/votacion/comprobante/{comprobante.PublicToken}";
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    opcion = raw.Equals("BLANCO", StringComparison.OrdinalIgnoreCase) ? "BLANCO" : raw; // GUID string
+                }
+                else
+                {
+                    var op = (req.OpcionPresidente ?? "").Trim().ToUpperInvariant();
+                    opcion = (op == "SI" || op == "NO" || op == "BLANCO") ? op : "N/D";
+                }
             }
-            // Enviar correo (comprobante)
-            var emailMasked = SecurityHelpers.MaskEmail(user.Email);
-            var fotoUrl = user.FotoUrl ?? ""; // si FotoUrl está en Usuario. Si está en padrón, ajústalo.
-            var btn = !string.IsNullOrWhiteSpace(papeletaUrl)
-                ? $@"<p><a href=""{papeletaUrl}"" style=""display:inline-block;padding:12px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;"">Ver papeleta / comprobante</a></p>
-        <p style=""font-size:12px;color:#666"">Si el botón no funciona, copia y pega este enlace:<br>{papeletaUrl}</p>"
-                : @"<p style=""color:#b00"">No se pudo generar el enlace público (configura App:PublicBaseUrl).</p>";
+            else
+            {
+                var listaId = (req.PartidoListaId ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(listaId)) opcion = listaId;     // GUID lista
+                else opcion = "INDIVIDUAL";
+            }
 
-            var html = $@"
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            try
+            {
+                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Nacional, "Nacional", opcion, ct);
+                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Provincia, junta.Provincia, opcion, ct);
+                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Canton, junta.Canton, opcion, ct);
+                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Parroquia, junta.Parroquia ?? "SIN_PARROQUIA", opcion, ct);
+
+                var genero = (user.Genero ?? "NO_ESPECIFICA").Trim();
+                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Genero, genero, opcion, ct);
+
+                // Guardar voto anónimo
+                var voto = new VotoAnonimo
+                {
+                    Id = Guid.NewGuid(),
+                    ProcesoElectoralId = procesoId,
+                    EleccionId = eleccionId,
+                    JuntaId = junta.Id,
+                    EmitidoUtc = DateTime.UtcNow,
+                    CipherTextBase64 = cipherB64,
+                    NonceBase64 = nonceB64,
+                    TagBase64 = tagB64,
+                    KeyVersion = keyVer
+                };
+                _db.VotosAnonimos.Add(voto);
+
+                // Marcar sufragio + código usado
+                padron.YaVoto = true;
+                padron.VotoUtc = DateTime.UtcNow;
+
+                cod.Usado = true;
+                cod.UsadoUtc = DateTime.UtcNow;
+
+                // Comprobante (con identidad)
+                var comprobante = new ComprobanteVoto
+                {
+                    Id = Guid.NewGuid(),
+                    ProcesoElectoralId = procesoId,
+                    EleccionId = eleccionId,
+                    UsuarioId = user.Id,
+                    JuntaId = junta.Id,
+                    JefeJuntaUsuarioId = junta.JefeJuntaUsuarioId,
+                    GeneradoUtc = DateTime.UtcNow,
+                    EstadoEnvio = ComprobanteEstado.Pendiente,
+                    PublicToken = CreatePublicToken(),
+                    PublicTokenExpiraUtc = DateTime.UtcNow.AddHours(24)
+                };
+                _db.ComprobantesVoto.Add(comprobante);
+
+                await _db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+
+                var baseUrl = (_cfg["App:PublicBaseUrl"] ?? "").Trim().TrimEnd('/');
+                string? papeletaUrl = null;
+
+                if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(comprobante.PublicToken))
+                    papeletaUrl = $"{baseUrl}/api/votacion/comprobante/{comprobante.PublicToken}";
+
+                var emailMasked = SecurityHelpers.MaskEmail(user.Email);
+                var fotoUrl = user.FotoUrl ?? ""; // si FotoUrl está en Usuario. Si está en padrón, ajústalo.
+                var btn = !string.IsNullOrWhiteSpace(papeletaUrl)
+                    ? $@"<p><a href=""{papeletaUrl}"" style=""display:inline-block;padding:12px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;"">Ver papeleta / comprobante</a></p>
+        <p style=""font-size:12px;color:#666"">Si el botón no funciona, copia y pega este enlace:<br>{papeletaUrl}</p>"
+                    : @"<p style=""color:#b00"">No se pudo generar el enlace público (configura App:PublicBaseUrl).</p>";
+
+                var html = $@"
         <div style=""font-family:Arial,sans-serif;max-width:640px;margin:auto"">
          <h2>Comprobante de Votación</h2>
        <p>Su voto ha sido registrado correctamente.</p>
@@ -386,39 +432,49 @@ namespace VotoElectonico.Controllers
           Este comprobante confirma participación. No incluye la selección del voto.
         </p>
         </div>";
-            var send = new SendEmailDto
-            {
-                ToEmail = user.Email,
-                ToName = user.NombreCompleto,
-                Subject = "Papeleta / Comprobante de Votación",
-                HtmlContent = html
-            };
+                var send = new SendEmailDto
+                {
+                    ToEmail = user.Email,
+                    ToName = user.NombreCompleto,
+                    Subject = "Papeleta / Comprobante de Votación",
+                    HtmlContent = html
+                };
 
-            var (sent, messageId, error) = await _email.SendAsync(send, ct);
+                var (sent, messageId, error) = await _email.SendAsync(send, ct);
 
-            comprobante.BrevoMessageId = messageId;
-            if (sent)
-            {
-                comprobante.EstadoEnvio = ComprobanteEstado.Enviado;
-                comprobante.EnviadoUtc = DateTime.UtcNow;
+                comprobante.BrevoMessageId = messageId;
+                if (sent)
+                {
+                    comprobante.EstadoEnvio = ComprobanteEstado.Enviado;
+                    comprobante.EnviadoUtc = DateTime.UtcNow;
+                }
+                else
+                {
+                    comprobante.EstadoEnvio = ComprobanteEstado.Fallido;
+                    comprobante.ErrorEnvio = error;
+                }
+
+                await _db.SaveChangesAsync(ct);
+
+                return Ok(ApiResponse<EmitirVotoResponseDto>.Success(new EmitirVotoResponseDto
+                {
+                    Ok = true,
+                    Mensaje = "Voto registrado.",
+                    PapeletaEnviada = sent,
+                    EmailEnmascarado = emailMasked,
+                    PapeletaUrl = papeletaUrl
+                }));
+
             }
-            else
+            catch
             {
-                comprobante.EstadoEnvio = ComprobanteEstado.Fallido;
-                comprobante.ErrorEnvio = error;
-            }
-
-            await _db.SaveChangesAsync(ct);
-
-            return Ok(ApiResponse<EmitirVotoResponseDto>.Success(new EmitirVotoResponseDto
-            {
-                Ok = true,
-                Mensaje = "Voto registrado.",
-                PapeletaEnviada = sent,
-                EmailEnmascarado = emailMasked,
-                PapeletaUrl = papeletaUrl
-            }));
+                await tx.RollbackAsync(ct);
+                throw; 
+            }  
         }
+
+
+
         [AllowAnonymous]
         [HttpGet("comprobante/{token}")]
         public async Task<IActionResult> ComprobantePublico([FromRoute] string token, CancellationToken ct)
@@ -499,6 +555,39 @@ namespace VotoElectonico.Controllers
                 .Replace("+", "-")
                 .Replace("/", "_")
                 .Replace("=", "");
+        }
+        private async Task IncrementarResultadoAsync(Guid procesoId, Guid eleccionId, DimensionReporte dim, string dimValor, string opcion, CancellationToken ct)
+        {
+            dimValor = (dimValor ?? "").Trim();
+            opcion = (opcion ?? "").Trim();
+
+            var row = await _db.ResultadosAgregados.FirstOrDefaultAsync(x =>
+                x.ProcesoElectoralId == procesoId &&
+                x.EleccionId == eleccionId &&
+                x.Dimension == dim &&
+                x.DimensionValor == dimValor &&
+                x.Opcion == opcion, ct);
+
+            if (row == null)
+            {
+                row = new ResultadoAgregado
+                {
+                    Id = Guid.NewGuid(),
+                    ProcesoElectoralId = procesoId,
+                    EleccionId = eleccionId,
+                    Dimension = dim,
+                    DimensionValor = dimValor,
+                    Opcion = opcion,
+                    Votos = 1,
+                    ActualizadoUtc = DateTime.UtcNow
+                };
+                _db.ResultadosAgregados.Add(row);
+            }
+            else
+            {
+                row.Votos += 1;
+                row.ActualizadoUtc = DateTime.UtcNow;
+            }
         }
     }
 }

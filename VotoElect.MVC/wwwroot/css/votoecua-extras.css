@@ -64,3 +64,158 @@
     border-color: #d9a55c; /* tono café/oro del template */
     box-shadow: 0 8px 22px rgba(217,165,92,.25);
 }
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body.layout-root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.layout-main {
+    flex: 1;
+}
+
+/* Evita que la barra quede flotando encima del contenido */
+.nav-bar {
+    position: relative !important;
+    z-index: 1030; /* por si hay overlays, pero sin tapar el contenido */
+}
+
+/* Asegura que el contenido arranque debajo */
+.layout-main {
+    padding-top: 0 !important;
+}
+
+.nav-bar {
+    background: rgba(51, 33, 29, 1) !important;
+}
+
+/* === Votante: contenedor limpio === */
+.vote-shell {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+    /* CENTRADO VERTICAL */
+    min-height: calc(100vh - 140px); /* ajusta si tu navbar/footer cambian */
+    display: flex;
+    align-items: center; /* vertical */
+    justify-content: center; /* horizontal */
+}
+
+
+.vote-card {
+    background: rgba(255,255,255,.85);
+    border: 1px solid rgba(0,0,0,.10);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.06);
+}
+
+.vote-card-wide {
+    max-width: 1100px;
+}
+
+.vote-content {
+    margin-top: 8px;
+}
+
+/* Para que el layout no “aplane” todo arriba */
+.layout-main {
+    padding-top: 18px !important;
+}
+
+.vote-card {
+    width: 100%;
+    max-width: 1100px;
+}
+
+    .vote-card:not(.vote-card-wide) {
+        max-width: 760px; /* Confirmar voto más compacto */
+    }
+
+
+/*--------*/
+:root {
+    --ecua-strip: url("/img/footer-f.png"); /* franja (header/footer) */
+    --ecua-vote-bg: url("/img/fondo-voto.png"); /* fondo votante */
+    --ecua-bar: #040433;
+    --ecua-bar-hover: #06314c;
+}
+
+/* Franjas template */
+.page-header,
+.footer {
+    background-image: var(--ecua-strip) !important;
+    background-size: cover !important;
+    background-position: center !important;
+}
+
+/* Fondo SOLO votante */
+body.layout-votante {
+    background: var(--ecua-vote-bg) center/cover no-repeat fixed !important;
+}
+
+    /* Card legible */
+    body.layout-votante .vote-card {
+        background: rgba(255,255,255,.88);
+    }
+/*-----*/
+
+/* Navbar del template (Home/Login) */
+.nav-bar,
+.navbar.bg-none.navbar-dark {
+    background: var(--ecua-bar) !important;
+}
+
+/* Navbar Admin/Jefe (tu _NavbarPanel usa bg-dark) */
+.navbar.bg-dark {
+    background-color: var(--ecua-bar) !important;
+}
+
+/* Links de la barra (opcional, para que se vea fino) */
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255,255,255,.88) !important;
+}
+
+    .navbar-dark .navbar-nav .nav-link:hover {
+        color: #fff !important;
+    }
+
+/* Botón "Salir" (si quieres que combine mejor) */
+.navbar .btn.btn-outline-light:hover {
+    background: var(--ecua-bar-hover) !important;
+    border-color: rgba(255,255,255,.5) !important;
+}
+
+:root {
+    --ecua-bar: #040433;
+    --ecua-bar-hover: #06314c;
+}
+
+.btn-resultados {
+    background: var(--ecua-bar) !important;
+    border-color: var(--ecua-bar) !important;
+    color: #fff !important;
+}
+
+    .btn-resultados:hover {
+        background: var(--ecua-bar-hover) !important;
+        border-color: var(--ecua-bar-hover) !important;
+        color: #fff !important;
+    }
+
+body.layout-votante .page-header {
+    background: none !important;
+}
+
+    body.layout-votante .page-header::before,
+    body.layout-votante .page-header::after {
+        content: none !important;
+        background: none !important;
+    }

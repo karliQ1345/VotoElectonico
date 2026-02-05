@@ -14,5 +14,8 @@
         public Usuario JefeJuntaUsuario { get; set; } = null!;
 
         public bool Activa { get; set; } = true;
+        public bool Cerrada { get; set; } = false;
+        public DateTime? CerradaUtc { get; set; }
+        public Guid? CerradaPorJefeId { get; set; }
     }
 }

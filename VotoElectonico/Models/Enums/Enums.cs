@@ -41,6 +41,7 @@
 
     public enum DimensionReporte
     {
+        Nacional = 0,
         Provincia = 1,
         Canton = 2,
         Parroquia = 3,

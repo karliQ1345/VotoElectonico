@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using VotoElect.MVC.ApiContracts;
 using VotoElect.MVC.Services;
 using VotoElect.MVC.ViewModels;
@@ -189,5 +190,12 @@ public class JefeJuntaController : Controller
 
         TempData["ok"] = resp.Data.Mensaje;
         return RedirectToAction(nameof(Panel));
+    }
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        ViewData["Navbar"] = "Panel";
+        ViewData["Footer"] = true;
+        base.OnActionExecuting(context);
     }
 }

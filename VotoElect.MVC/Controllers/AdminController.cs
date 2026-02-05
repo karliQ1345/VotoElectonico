@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using VotoElect.MVC.Services;
-using VotoElect.MVC.ViewModels;
-using  VotoElect.MVC.Utils;
+using Microsoft.AspNetCore.Mvc.Filters;
 using VotoElect.MVC.ApiContracts;
+using VotoElect.MVC.Services;
+using  VotoElect.MVC.Utils;
+using VotoElect.MVC.ViewModels;
 
 namespace VotoElect.MVC.Controllers;
 
@@ -358,5 +359,12 @@ public class AdminController : Controller
         if (resp?.Data != null) TempData["padron_result"] = System.Text.Json.JsonSerializer.Serialize(resp.Data);
 
         return RedirectToAction(nameof(Padron));
+    }
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        ViewData["Navbar"] = "Panel";
+        ViewData["Footer"] = true;   // o false si no quieres footer en panel
+        base.OnActionExecuting(context);
     }
 }

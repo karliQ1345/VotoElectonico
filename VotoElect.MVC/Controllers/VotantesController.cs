@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using VotoElect.MVC.ApiContracts;
 using VotoElect.MVC.Services;
 using VotoElect.MVC.ViewModels;
@@ -223,5 +224,12 @@ public class VotantesController : Controller
             PapeletaUrl = url
         });
     }
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        ViewData["Navbar"] = "None";
+        ViewData["Footer"] = false;
+        base.OnActionExecuting(context);
+    }
+
 }
 

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using VotoElect.MVC.ApiContracts;
 using VotoElect.MVC.Services;
 using VotoElect.MVC.ViewModels;
-
 namespace VotoElect.MVC.Controllers;
 
 public class JefeJuntaController : Controller
@@ -164,5 +163,31 @@ public class JefeJuntaController : Controller
         HttpContext.Session.SetString(SessionKeys.CodigoUnico, codigo);
 
         return RedirectToAction("Papeleta", "Votantes");
+    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> FinalizarJunta(CancellationToken ct)
+    {
+        var token = Token();
+        if (string.IsNullOrWhiteSpace(token))
+            return RedirectToAction("Index", "Acceso");
+
+        var proc = await _api.GetProcesoActivoAsync(token, ct);
+        if (proc == null || !proc.Ok || proc.Data == null || string.IsNullOrWhiteSpace(proc.Data.ProcesoElectoralId))
+        {
+            TempData["err"] = proc?.Message ?? "No se pudo obtener el proceso activo.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        var resp = await _api.FinalizarJuntaAsync(proc.Data.ProcesoElectoralId, token, ct);
+
+        if (resp == null || !resp.Ok || resp.Data == null)
+        {
+            TempData["err"] = resp?.Message ?? "No se pudo finalizar la junta.";
+            return RedirectToAction(nameof(Panel));
+        }
+
+        TempData["ok"] = resp.Data.Mensaje;
+        return RedirectToAction(nameof(Panel));
     }
 }

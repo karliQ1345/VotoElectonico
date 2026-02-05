@@ -1,0 +1,17 @@
+﻿@model string
+
+<nav class="navbar navbar-dark bg-dark px-4 py-3">
+    <div class="navbar-brand d-flex align-items-center m-0" style="cursor: default;">
+        <img src="~/img/logo.png" alt="Logo EcuaVoto" style="height:44px; width:auto;" class="mr-3" />
+        <span class="font-weight-bold" style="font-size: 1.6rem; letter-spacing: .5px;">
+            EcuaVoto
+        </span>
+    </div>
+    <div class="d-flex align-items-center">
+        <span class="text-white mr-3">@Model</span>
+        <a asp-controller="Acceso" asp-action="Logout" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-sign-out-alt mr-1"></i> Salir
+        </a>
+    </div>
+
+</nav>

@@ -1,0 +1,97 @@
+﻿@using Microsoft.AspNetCore.Http
+@using VotoElect.MVC.Services
+
+@{
+    var rol = (Context.Session.GetString(SessionKeys.Rol) ?? "").Trim();
+
+    // Normaliza por si guardaste nombres “bonitos”
+    rol = rol switch
+    {
+        "Administrador" => "Admin",
+        "Jefe de Junta" => "JefeJunta",
+        "Votante" => "Votante",
+        _ => rol
+    };
+
+    var rolUi =
+        rol == "Admin" ? "Administrador" :
+        rol == "JefeJunta" ? "Jefe de Junta" :
+        rol == "Votante" ? "Votante" :
+        "";
+
+    // Config por vista
+    var navbar = (ViewData["Navbar"] as string) ?? "Public";   // Public | Panel | None
+    var showFooter = (ViewData["Footer"] as bool?) ?? true;
+    var bodyClass = (ViewData["BodyClass"] as string) ?? "layout-root";
+    var mainClass = (ViewData["MainClass"] as string) ?? "layout-main container-fluid py-4 px-4";
+    var centerCard = (ViewData["CenterCard"] as bool?) ?? false;
+}
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"] - EcuaVoto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" href="~/img/logo.png" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <link href="~/css/style.min.css" rel="stylesheet">
+    <link href="~/css/votoecua-extras.css" rel="stylesheet">
+
+    @RenderSection("Styles", required: false)
+</head>
+
+<body class="@bodyClass">
+
+    @* NAVBAR *@
+    @if (navbar == "Public")
+    {
+        <partial name="_NavbarPublic" />
+    }
+    else if (navbar == "Panel")
+    {
+        <partial name="_NavbarPanel" model="rolUi" />
+    }
+    @* None = no renderiza navbar *@
+
+    @* CONTENIDO *@
+    @if (centerCard)
+    {
+        <div class="container-fluid p-0 page-header position-relative overlay-bottom">
+            <div class="d-flex align-items-center justify-content-center min-vh-100 px-3">
+                <div class="w-100" style="max-width: 980px;">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <main class="@mainClass">
+            @RenderBody()
+        </main>
+    }
+
+    @* FOOTER *@
+    @if (showFooter)
+    {
+        var footerText = navbar == "Panel" && !string.IsNullOrWhiteSpace(rolUi)
+        ? rolUi
+        : "";
+
+        <partial name="_FooterEcua" model="footerText" />
+    }
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
+

@@ -148,13 +148,13 @@ namespace VotoElectonico
                     diag.Set("RequestPath", http.Request.Path.Value ?? "");
                 };
             });
+            var swaggerEnabled = builder.Configuration.GetValue<bool>("Swagger:Enabled");
 
-            if (app.Environment.IsDevelopment())
+            if (swaggerEnabled)
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
             app.UseCors("DefaultCors");
 
             // Middleware de auditoría (Ip/UserAgent/UserId/Role)

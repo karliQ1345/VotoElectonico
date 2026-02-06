@@ -5,9 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+	<ProjectReference Include="..\VotoElectonico\VotoElectonico.csproj" />
 
-  <ItemGroup>
-    <ProjectReference Include="..\VotoElectonico\VotoElectonico.csproj" />
+	<ItemGroup>
   </ItemGroup>
 
 </Project>

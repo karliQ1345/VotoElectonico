@@ -147,7 +147,7 @@ namespace VotoElectonico
             });
             var swaggerEnabled = builder.Configuration.GetValue<bool>("Swagger:Enabled");
 
-            if (swaggerEnabled)
+            if (app.Environment.IsDevelopment() || true)
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();

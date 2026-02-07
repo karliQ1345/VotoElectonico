@@ -39,10 +39,7 @@ namespace VotoElectonico
             builder.Services.AddDbContext<ApplicationDbContext>(opt =>
             {
                 var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-                opt.UseNpgsql(cs, npgsql =>
-                {
-                    npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-                });
+                opt.UseNpgsql(cs); // <--- Solo deja esto
             });
 
             // Options

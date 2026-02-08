@@ -114,6 +114,9 @@ namespace VotoElectonico.Migrations
                     b.Property<Guid>("EleccionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("EleccionId1")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("EnviadoUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -140,6 +143,9 @@ namespace VotoElectonico.Migrations
                     b.Property<Guid>("ProcesoElectoralId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ProcesoElectoralId1")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PublicToken")
                         .HasColumnType("text");
 
@@ -153,11 +159,15 @@ namespace VotoElectonico.Migrations
 
                     b.HasIndex("EleccionId");
 
+                    b.HasIndex("EleccionId1");
+
                     b.HasIndex("EstadoEnvio");
 
                     b.HasIndex("JefeJuntaUsuarioId");
 
                     b.HasIndex("JuntaId");
+
+                    b.HasIndex("ProcesoElectoralId1");
 
                     b.HasIndex("UsuarioId");
 
@@ -667,6 +677,12 @@ namespace VotoElectonico.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VotoElectonico.Models.Eleccion", "Eleccion")
+                        .WithMany()
+                        .HasForeignKey("EleccionId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("VotoElectonico.Models.Usuario", "JefeJuntaUsuario")
                         .WithMany()
                         .HasForeignKey("JefeJuntaUsuarioId")
@@ -685,15 +701,25 @@ namespace VotoElectonico.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("VotoElectonico.Models.ProcesoElectoral", "ProcesoElectoral")
+                        .WithMany()
+                        .HasForeignKey("ProcesoElectoralId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("VotoElectonico.Models.Usuario", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Eleccion");
+
                     b.Navigation("JefeJuntaUsuario");
 
                     b.Navigation("Junta");
+
+                    b.Navigation("ProcesoElectoral");
 
                     b.Navigation("Usuario");
                 });

@@ -480,23 +480,23 @@ namespace VotoElectonico.Controllers
         public async Task<IActionResult> ComprobantePublico([FromRoute] string token, CancellationToken ct)
         {
             token = (token ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(token))
-                return Content("Token inválido.", "text/plain");
+            if (string.IsNullOrWhiteSpace(token)) return Content("Token inválido.", "text/plain");
 
+            // Traemos todo en UNA sola consulta a la base de datos
             var comp = await _db.ComprobantesVoto
+                .Include(x => x.Usuario)
+                .Include(x => x.ProcesoElectoral)
+                .Include(x => x.Eleccion)
+                .Include(x => x.Junta)
                 .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
 
-            if (comp == null)
-                return Content("Comprobante no existe.", "text/plain");
+            if (comp == null) return Content("Comprobante no existe.", "text/plain");
 
-            if (comp.PublicTokenExpiraUtc.HasValue && DateTime.UtcNow > comp.PublicTokenExpiraUtc.Value)
-                return Content("El enlace ha expirado.", "text/plain");
-
-            var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
-            var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == comp.ProcesoElectoralId, ct);
-            var eleccion = await _db.Elecciones.FirstOrDefaultAsync(x => x.Id == comp.EleccionId, ct);
-            var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
-
+            // Ahora usamos las propiedades cargadas (comp.Usuario, comp.Eleccion, etc.)
+            var user = comp.Usuario;
+            var proceso = comp.ProcesoElectoral;
+            var eleccion = comp.Eleccion;
+            var junta = comp.Junta;
             var fotoUrl = user?.FotoUrl ?? "";
 
             var html = $@"

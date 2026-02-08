@@ -482,21 +482,18 @@ namespace VotoElectonico.Controllers
             token = (token ?? "").Trim();
             if (string.IsNullOrWhiteSpace(token)) return Content("Token inválido.", "text/plain");
 
-            // Traemos todo en UNA sola consulta a la base de datos
+            // Consulta simple sin los Include que rompen el sistema
             var comp = await _db.ComprobantesVoto
-                .Include(x => x.Usuario)
-                .Include(x => x.ProcesoElectoral)
-                .Include(x => x.Eleccion)
-                .Include(x => x.Junta)
                 .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
 
             if (comp == null) return Content("Comprobante no existe.", "text/plain");
 
-            // Ahora usamos las propiedades cargadas (comp.Usuario, comp.Eleccion, etc.)
-            var user = comp.Usuario;
-            var proceso = comp.ProcesoElectoral;
-            var eleccion = comp.Eleccion;
-            var junta = comp.Junta;
+            // Buscamos los datos por separado (esto funciona bien con el Session Pooler)
+            var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
+            var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == comp.ProcesoElectoralId, ct);
+            var eleccion = await _db.Elecciones.FirstOrDefaultAsync(x => x.Id == comp.EleccionId, ct);
+            var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
+
             var fotoUrl = user?.FotoUrl ?? "";
 
             var html = $@"

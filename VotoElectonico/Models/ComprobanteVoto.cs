@@ -8,11 +8,9 @@ namespace VotoElectonico.Models
         public Guid Id { get; set; }
 
         public Guid ProcesoElectoralId { get; set; }
-        [ForeignKey("ProcesoElectoralId")] // Usa la columna que ya existe
-        public ProcesoElectoral ProcesoElectoral { get; set; } = null!;
+     
         public Guid EleccionId { get; set; }
-        [ForeignKey("EleccionId")] // Usa la columna que ya existe
-        public Eleccion Eleccion { get; set; } = null!;
+
 
         public Guid UsuarioId { get; set; }                 // aquí SÍ va identidad (es el comprobante)
         public Usuario Usuario { get; set; } = null!;

@@ -479,65 +479,111 @@ namespace VotoElectonico.Controllers
         [HttpGet("comprobante/{token}")]
         public async Task<IActionResult> ComprobantePublico([FromRoute] string token, CancellationToken ct)
         {
-            token = (token ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(token)) return Content("Token inválido.", "text/plain");
+            try
+            {
+                // 1. Validación de entrada
+                token = (token ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(token))
+                    return Content("Token inválido.", "text/plain");
 
-            // Consulta simple sin los Include que rompen el sistema
-            var comp = await _db.ComprobantesVoto
-                .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
+                // 2. Consulta del comprobante (Sin rastreo para mejorar rendimiento en Render)
+                var comp = await _db.ComprobantesVoto
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
 
-            if (comp == null) return Content("Comprobante no existe.", "text/plain");
+                if (comp == null)
+                    return Content("El comprobante no existe o el enlace ha expirado.", "text/plain");
 
-            // Buscamos los datos por separado (esto funciona bien con el Session Pooler)
-            var user = await _db.Usuarios.FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
-            var proceso = await _db.ProcesosElectorales.FirstOrDefaultAsync(x => x.Id == comp.ProcesoElectoralId, ct);
-            var eleccion = await _db.Elecciones.FirstOrDefaultAsync(x => x.Id == comp.EleccionId, ct);
-            var junta = await _db.Juntas.FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
+                // 3. Carga de datos relacionados de forma independiente (Evita problemas de pooling)
+                var user = await _db.Usuarios.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
 
-            var fotoUrl = user?.FotoUrl ?? "";
+                var proceso = await _db.ProcesosElectorales.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == comp.ProcesoElectoralId, ct);
 
-            var html = $@"
+                var eleccion = await _db.Elecciones.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == comp.EleccionId, ct);
+
+                var junta = await _db.Juntas.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
+
+                // 4. Variables de seguridad para evitar NullReferenceException en el HTML
+                // Si el usuario es nulo, es un error de integridad grave
+                if (user == null)
+                    return Content("No se pudieron recuperar los datos del votante.", "text/plain");
+
+                string nombreVotante = user.NombreCompleto ?? "Usuario no identificado";
+                string cedulaVotante = user.Cedula ?? "N/D";
+                string nombreProceso = proceso?.Nombre ?? "Proceso Electoral";
+                string tituloEleccion = eleccion?.Titulo ?? "Elección General";
+                string codigoJunta = junta?.Codigo ?? "N/A";
+                string fotoUrl = user.FotoUrl ?? "";
+
+                // 5. Generación del HTML con manejo de caracteres UTF-8
+                var html = $@"
 <!doctype html>
-<html>
+<html lang='es'>
 <head>
-  <meta charset=""utf-8""/>
-  <meta name=""viewport"" content=""width=device-width, initial-scale=1""/>
-  <title>Comprobante</title>
+    <meta charset='utf-8'/>
+    <meta name='viewport' content='width=device-width, initial-scale=1'/>
+    <title>Comprobante de Votación</title>
+    <style>
+        body {{ font-family: sans-serif; background: #f8f9fa; padding: 20px; color: #333; }}
+        .card {{ max-width: 600px; margin: auto; background: #fff; border-radius: 12px; padding: 25px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+        .header {{ border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }}
+        .info-grid {{ display: flex; gap: 20px; flex-wrap: wrap; }}
+        .photo-box {{ border: 1px solid #eee; padding: 10px; background: #fafafa; border-radius: 8px; text-align: center; width: 150px; }}
+        .details {{ flex: 1; }}
+        .details p {{ margin: 8px 0; line-height: 1.4; }}
+        .footer-note {{ font-size: 12px; color: #777; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }}
+        .btn-print {{ margin-top: 20px; padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 6px; cursor: pointer; }}
+        @media print {{ .btn-print {{ display: none; }} }}
+    </style>
 </head>
-<body style=""font-family:Arial,sans-serif;background:#f5f5f5;padding:18px"">
-  <div style=""max-width:720px;margin:auto;background:#fff;border-radius:14px;padding:18px;border:1px solid #eee"">
-    <h2 style=""margin-top:0"">Comprobante de Votación</h2>
-
-    <div style=""display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"">
-      <div style=""min-width:160px"">
-        <div style=""border:1px solid #eee;border-radius:12px;padding:10px;background:#fafafa;text-align:center"">
-          <div style=""font-weight:700;margin-bottom:8px"">Foto</div>
-          {(string.IsNullOrWhiteSpace(fotoUrl)
-                    ? "<div style='color:#999'>Sin foto</div>"
-                    : $@"<img src=""{fotoUrl}"" style=""width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid #ddd""/>")}
+<body>
+    <div class='card'>
+        <div class='header'>
+            <h2 style='margin:0'>Certificado de Votación</h2>
         </div>
-      </div>
 
-      <div style=""flex:1;min-width:260px"">
-        <p><b>Votante:</b> {user?.NombreCompleto}</p>
-        <p><b>Cédula:</b> {user?.Cedula}</p>
-        <p><b>Proceso:</b> {proceso?.Nombre}</p>
-        <p><b>Elección:</b> {eleccion?.Titulo}</p>
-        <p><b>Junta:</b> {junta?.Codigo}</p>
-        <p><b>Generado:</b> {comp.GeneradoUtc:yyyy-MM-dd HH:mm} UTC</p>
-        <p style=""font-size:12px;color:#666"">No incluye la selección del voto.</p>
-      </div>
+        <div class='info-grid'>
+            <div class='photo-box'>
+                <strong>Foto</strong><br/><br/>
+                {(string.IsNullOrWhiteSpace(fotoUrl)
+                            ? "<div style='color:#999; padding:40px 0;'>Sin foto</div>"
+                            : $"<img src='{fotoUrl}' style='width:130px; height:130px; object-fit:cover; border-radius:6px;'/>")}
+            </div>
+
+            <div class='details'>
+                <p><b>Votante:</b> {nombreVotante}</p>
+                <p><b>Cédula:</b> {cedulaVotante}</p>
+                <p><b>Proceso:</b> {nombreProceso}</p>
+                <p><b>Elección:</b> {tituloEleccion}</p>
+                <p><b>Junta:</b> {codigoJunta}</p>
+                <p><b>Fecha de Emisión:</b> {comp.GeneradoUtc.ToLocalTime():yyyy-MM-dd HH:mm}</p>
+            </div>
+        </div>
+
+        <div class='footer-note'>
+            Este documento certifica que el ciudadano ha ejercido su derecho al voto de forma electrónica. 
+            <strong>No revela el contenido de su elección.</strong>
+        </div>
+
+        <button class='btn-print' onclick='window.print()'>Imprimir Comprobante</button>
     </div>
-
-    <hr style=""border:none;border-top:1px solid #eee;margin:16px 0""/>
-    <button onclick=""window.print()"" style=""padding:10px 14px;border-radius:10px;border:1px solid #ddd;background:#fff;cursor:pointer"">
-      Imprimir / Guardar PDF
-    </button>
-  </div>
 </body>
 </html>";
 
-            return Content(html, "text/html; charset=utf-8");
+                return Content(html, "text/html; charset=utf-8");
+            }
+            catch (Exception ex)
+            {
+                // 6. Registro del error en los logs de Render para diagnóstico
+                Console.WriteLine($"[CRITICAL ERROR - ComprobantePublico]: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+
+                return Content("Ocurrió un error inesperado al procesar su solicitud. Por favor, intente más tarde.", "text/plain");
+            }
         }
         private static string CreatePublicToken()
         {

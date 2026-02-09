@@ -18,6 +18,7 @@ namespace VotoElectonico
     {
         public static void Main(string[] args)
         {
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Host.UseSerilog((ctx, lc) =>

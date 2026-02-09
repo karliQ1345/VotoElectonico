@@ -32,6 +32,15 @@ namespace VotoElectonico.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                var properties = entityType.GetProperties()
+                    .Where(p => p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?));
+                foreach (var property in properties)
+                {
+                    property.SetColumnType("timestamp with time zone");
+                }
+            }
 
             modelBuilder.Entity<Usuario>(e =>
             {
@@ -224,7 +233,7 @@ namespace VotoElectonico.Data
             modelBuilder.Entity<ComprobanteVoto>(e =>
             {
                 e.HasKey(x => x.Id);
-
+                e.HasIndex(x => x.PublicToken).IsUnique();
                 e.Property(x => x.PdfUrl).HasMaxLength(500);
                 e.Property(x => x.BrevoMessageId).HasMaxLength(100);
                 e.Property(x => x.ErrorEnvio).HasMaxLength(500);

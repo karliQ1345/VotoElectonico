@@ -394,7 +394,7 @@ namespace VotoElectonico.Controllers
                 await _db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
 
-                var baseUrl = (_cfg["App:PublicBaseUrl"] ?? "").Trim().TrimEnd('/');
+                var baseUrl = (_cfg["App:BaseUrl"] ?? "").Trim().TrimEnd('/');
                 string? papeletaUrl = null;
 
                 if (!string.IsNullOrWhiteSpace(baseUrl) && !string.IsNullOrWhiteSpace(comprobante.PublicToken))
@@ -403,10 +403,14 @@ namespace VotoElectonico.Controllers
                 var emailMasked = SecurityHelpers.MaskEmail(user.Email);
                 var fotoUrl = user.FotoUrl ?? ""; // si FotoUrl está en Usuario. Si está en padrón, ajústalo.
                 var btn = !string.IsNullOrWhiteSpace(papeletaUrl)
-                    ? $@"<p><a href=""{papeletaUrl}"" style=""display:inline-block;padding:12px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;"">Ver papeleta / comprobante</a></p>
+      ? $@"<p style=""margin-top:16px;"">
+            <a href=""{papeletaUrl}""
+               style=""display:inline-block;padding:12px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:8px;"">
+               Ver papeleta / comprobante
+            </a>
+        </p>
         <p style=""font-size:12px;color:#666"">Si el botón no funciona, copia y pega este enlace:<br>{papeletaUrl}</p>"
-                    : @"<p style=""color:#b00"">No se pudo generar el enlace público (configura App:PublicBaseUrl).</p>";
-
+      : @"<p style=""color:#b00"">No se pudo generar el enlace público (configura Api:BaseUrl).</p>";
                 var infoCNE = @"
     <div style=""margin-top:20px;padding:15px;background-color:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;"">
         <p style=""margin:0;color:#333;""><strong>Nota:</strong> Este es su comprobante oficial de votación electrónica.</p>
@@ -418,22 +422,19 @@ namespace VotoElectonico.Controllers
 
                 var html = $@"
 <div style=""font-family:Arial,sans-serif;max-width:640px;margin:auto"">
-    <h2>Comprobante de Votación</h2>
-    <p>Su voto ha sido registrado correctamente.</p>
+  <h2>Comprobante de Votación</h2>
+  <p>Su voto ha sido registrado correctamente.</p>
 
-    <div style=""border:1px solid #eee;border-radius:12px;padding:16px;background:#fafafa"">
-        <p><b>Proceso:</b> {proceso.Nombre}</p>
-        <p><b>Elección:</b> {eleccion.Titulo}</p>
-        <p><b>Junta:</b> {junta.Codigo}</p>
-        <p><b>Fecha:</b> {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC</p>
+  <div style=""border:1px solid #eee;border-radius:12px;padding:16px;background:#fafafa"">
+    <p><b>Proceso:</b> {proceso.Nombre}</p>
+    <p><b>Elección:</b> {eleccion.Titulo}</p>
+    <p><b>Junta:</b> {junta.Codigo}</p>
+    <p><b>Fecha:</b> {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC</p>
 
-        <hr style=""border:none;border-top:1px solid #eee;margin:12px 0"">
-  
-        <p><b>Votante:</b> {user.NombreCompleto}</p>
-        <p><b>Cédula:</b> {user.Cedula}</p>
- 
-        {(string.IsNullOrWhiteSpace(fotoUrl) ? "" : $@"<p><img src=""{fotoUrl}"" alt=""Foto"" style=""width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid #ddd"" /></p>")}
-    </div>
+    <hr style=""border:none;border-top:1px solid #eee;margin:12px 0"">
+    <p><b>Votante:</b> {user.NombreCompleto}</p>
+    <p><b>Cédula:</b> {user.Cedula}</p>
+  </div>
 
     {infoCNE}
 

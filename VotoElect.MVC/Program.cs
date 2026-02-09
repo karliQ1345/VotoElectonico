@@ -7,6 +7,7 @@ namespace VotoElect.MVC
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+        
 
             builder.Services.AddControllersWithViews();
 

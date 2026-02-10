@@ -4,7 +4,7 @@ public class BoletaDataDto
 {
     public string ProcesoElectoralId { get; set; } = null!;
     public string EleccionId { get; set; } = null!;
-    public string TipoEleccion { get; set; } = null!; // "Presidente_SiNoBlanco" o "Asambleistas"
+    public string TipoEleccion { get; set; } = null!; // "Nominal" o "Plurinominal"
     public string Titulo { get; set; } = null!;
 
     public int? MaxSeleccionIndividual { get; set; }

@@ -36,11 +36,13 @@
             <h1 class="display-4">Publicación oficial</h1>
         </div>
 
+        <!-- ✅ Layout como tu primera foto: izquierda (estado+nacional), derecha (filtros) -->
         <div class="row">
-            <!-- ✅ COLUMNA IZQUIERDA: Estado + Resultados Nacionales DEBAJO -->
+            <!-- IZQUIERDA -->
             <div class="col-lg-5 mb-4">
+
                 <!-- Estado del proceso -->
-                <div class="p-4 card-soft">
+                <div class="p-4 card-soft mb-4">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
                             <h4 class="mb-1">Estado del proceso</h4>
@@ -59,8 +61,8 @@
                     </p>
                 </div>
 
-                <!-- ✅ Resultados nacionales ABAJO -->
-                <div class="p-4 card-soft mt-3">
+                <!-- Resultados nacionales (ABAJO del estado) -->
+                <div class="p-4 card-soft">
                     <h4 class="mb-3">Resultados nacionales</h4>
 
                     <div id="bloqueEnProceso" class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
@@ -74,20 +76,16 @@
                     </div>
 
                     <div id="bloqueFinalizado" style="display:none;">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
-                                    <div class="small-muted mb-1">Total votos</div>
-                                    <div class="display-4 m-0" id="totalVotos">0</div>
-                                </div>
-                            </div>
+                        <div class="p-3 mb-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                            <div class="small-muted mb-1">Total votos</div>
+                            <div class="display-4 m-0" id="totalVotos">0</div>
                         </div>
 
                         <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
                             <div class="font-weight-bold mb-2">Distribución</div>
 
-                            <!-- ✅ SOLO GRÁFICA (sin el bloque rojo de progress) -->
-                            <div style="height:280px;">
+                            <!-- ✅ Solo la gráfica (se elimina el bloque rojo de barras/texto) -->
+                            <div style="height:320px;">
                                 <canvas id="chartNacional"></canvas>
                             </div>
 
@@ -98,7 +96,7 @@
                 </div>
             </div>
 
-            <!-- ✅ COLUMNA DERECHA: Reportes y filtros -->
+            <!-- DERECHA -->
             <div class="col-lg-7 mb-4">
                 <div class="p-4 card-soft">
                     <div class="d-flex flex-wrap align-items-end justify-content-between">
@@ -119,9 +117,17 @@
 
                     <hr />
 
-                    <div id="tablaResultados" class="table-responsive"></div>
+                    <!-- ✅ Gráfica de filtros (para que NO “desaparezca”) -->
+                    <div class="p-3 mb-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
+                        <div class="font-weight-bold mb-2" id="tituloChartDim">Distribución por dimensión</div>
+                        <div style="height:360px;">
+                            <canvas id="chartDimension"></canvas>
+                        </div>
+                        <div class="small-muted mt-2" id="chartDimInfo"></div>
+                    </div>
 
-                    <!-- (Opcional) Si luego quieres también un chart para la tabla, aquí lo metes -->
+                    <!-- Tabla (la dejamos; si luego quieres quitarla, se puede) -->
+                    <div id="tablaResultados" class="table-responsive"></div>
                 </div>
             </div>
         </div>
@@ -130,16 +136,23 @@
 
 @section Scripts {
 
-    <!-- Chart.js (CDN) -->
+    <!-- Chart.js + datalabels (para % encima) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
     <script>
+        // --- Estado / UI ---
         const estadoPill = document.getElementById("estadoPill");
         const estadoMsg = document.getElementById("estadoMsg");
+        const rango = document.getElementById("rangoProceso");
         const bloqueEnProceso = document.getElementById("bloqueEnProceso");
         const bloqueFinalizado = document.getElementById("bloqueFinalizado");
+
+        // --- Filtros + salida ---
         const dimensionSelect = document.getElementById("dimensionSelect");
         const tablaResultados = document.getElementById("tablaResultados");
+        const tituloChartDim = document.getElementById("tituloChartDim");
+        const chartDimInfo = document.getElementById("chartDimInfo");
 
         function escapeHtml(str) {
             return String(str ?? "")
@@ -150,8 +163,59 @@
                 .replaceAll("'", "&#039;");
         }
 
-        function getVotos(x) { return Number(x?.votos ?? x?.Votos ?? 0); }
-        function getOpcion(x) { return String(x?.opcion ?? x?.Opcion ?? ""); }
+        function getVotos(x) {
+            return Number(x?.votos ?? x?.Votos ?? 0);
+        }
+
+        function getOpcion(x) {
+            return String(x?.opcion ?? x?.Opcion ?? "");
+        }
+
+        function getDimensionValor(x) {
+            return String(x?.dimensionValor ?? x?.DimensionValor ?? "");
+        }
+
+        function renderTabla(dimension, actualizadoUtc, items, map) {
+            if (!items || items.length === 0) {
+                tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
+                return;
+            }
+
+            items.sort((a, b) => getVotos(b) - getVotos(a));
+
+            const filas = items.map(it => {
+                const opcion = getOpcion(it);
+                const opcionNombre = (map && map[opcion]) ? map[opcion] : opcion;
+
+                return `
+                  <tr>
+                    <td>${escapeHtml(getDimensionValor(it))}</td>
+                    <td>${escapeHtml(opcionNombre)}</td>
+                    <td class="text-right">${getVotos(it).toLocaleString("es-EC")}</td>
+                  </tr>
+                `;
+            }).join("");
+
+            const utc = actualizadoUtc ? String(actualizadoUtc).replace("T", " ").substring(0, 16) : "--";
+
+            tablaResultados.innerHTML = `
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                  <div class="small-muted">Dimensión: <b>${escapeHtml(dimension)}</b></div>
+                  <div class="small-muted">Actualizado (UTC): <b>${escapeHtml(utc)}</b></div>
+                </div>
+
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>${escapeHtml(dimension)}</th>
+                      <th>Opción</th>
+                      <th class="text-right">Votos</th>
+                    </tr>
+                  </thead>
+                  <tbody>${filas}</tbody>
+                </table>
+            `;
+        }
 
         function setTexto(id, text) {
             const el = document.getElementById(id);
@@ -174,92 +238,59 @@
             return d.toISOString().slice(0, 16).replace("T", " ");
         }
 
-        function renderTabla(dimension, actualizadoUtc, items, map) {
-            if (!items || items.length === 0) {
-                tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
-                return;
-            }
-
-            items.sort((a, b) => getVotos(b) - getVotos(a));
-
-            const filas = items.map(it => {
-                const opcion = getOpcion(it);
-                const opcionNombre = (map && map[opcion]) ? map[opcion] : opcion;
-                return `
-                    <tr>
-                        <td>${escapeHtml(it.dimensionValor ?? it.DimensionValor ?? "")}</td>
-                        <td>${escapeHtml(opcionNombre)}</td>
-                        <td class="text-right">${getVotos(it).toLocaleString("es-EC")}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            const utc = actualizadoUtc ? String(actualizadoUtc).replace("T", " ").substring(0, 16) : "--";
-
-            tablaResultados.innerHTML = `
-                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                    <div class="small-muted">Dimensión: <b>${escapeHtml(dimension)}</b></div>
-                    <div class="small-muted">Actualizado (UTC): <b>${escapeHtml(utc)}</b></div>
-                </div>
-
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>${escapeHtml(dimension)}</th>
-                            <th>Opción</th>
-                            <th class="text-right">Votos</th>
-                        </tr>
-                    </thead>
-                    <tbody>${filas}</tbody>
-                </table>
-            `;
-        }
-
         let _procesoIdActual = null;
 
-        // ✅ Chart instance
+        // --- Charts ---
         let _chartNacional = null;
+        let _chartDimension = null;
 
-        // ✅ Plugin simple: escribir % encima de cada barra
-        const percentLabelsPlugin = {
-            id: 'percentLabelsPlugin',
-            afterDatasetsDraw(chart, args, pluginOptions) {
-                const { ctx } = chart;
-                const dataset = chart.data.datasets?.[0];
-                if (!dataset) return;
+        function destroyChart(ref) {
+            if (ref) { ref.destroy(); }
+            return null;
+        }
 
-                const values = dataset.data || [];
-                const total = values.reduce((a, b) => a + Number(b || 0), 0);
+        // Plugin: % arriba, con padding para que no se corte el más alto
+        function chartOptionsConPorcentaje(totalVotos) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 22 } }, // ✅ espacio extra para que no se corte
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const v = Number(ctx.raw || 0);
+                                const pct = totalVotos > 0 ? Math.round((v * 100) / totalVotos) : 0;
+                                return ` ${v} votos (${pct}%)`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        clamp: true,
+                        formatter: (value) => {
+                            const v = Number(value || 0);
+                            const pct = totalVotos > 0 ? Math.round((v * 100) / totalVotos) : 0;
+                            return pct + "%";
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            };
+        }
 
-                const meta = chart.getDatasetMeta(0);
-                ctx.save();
-                ctx.font = '12px sans-serif';
-                ctx.fillStyle = '#2b2b2b';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
+        function buildBarChart(canvasId, labels, values, totalForPct) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
 
-                meta.data.forEach((bar, i) => {
-                    const v = Number(values[i] || 0);
-                    if (!v || total <= 0) return;
-                    const pct = Math.round((v * 100) / total) + "%";
-                    const pos = bar.tooltipPosition();
-                    ctx.fillText(pct, pos.x, pos.y - 6);
-                });
-
-                ctx.restore();
-            }
-        };
-
-        function buildChartBar(labels, values) {
-            const canvas = document.getElementById("chartNacional");
-            if (!canvas) return;
-
-            if (_chartNacional) {
-                _chartNacional.destroy();
-                _chartNacional = null;
-            }
-
-            _chartNacional = new Chart(canvas, {
+            const cfg = {
                 type: "bar",
                 data: {
                     labels,
@@ -268,16 +299,15 @@
                         data: values
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                },
-                plugins: [percentLabelsPlugin]
-            });
+                options: chartOptionsConPorcentaje(totalForPct),
+                plugins: [ChartDataLabels]
+            };
+
+            return new Chart(canvas, cfg);
+        }
+
+        function sum(arr) {
+            return arr.reduce((a,b)=>a+Number(b||0),0);
         }
 
         async function cargarEstadoYResultados() {
@@ -291,7 +321,10 @@
                     setPill("Sin proceso", "pill pill-warn");
                     mostrarEnProceso(true);
                     _procesoIdActual = null;
+
                     if (tablaResultados) tablaResultados.innerHTML = "";
+                    _chartNacional = destroyChart(_chartNacional);
+                    _chartDimension = destroyChart(_chartDimension);
                     return;
                 }
 
@@ -324,7 +357,10 @@
                 setPill("Error", "pill pill-warn");
                 mostrarEnProceso(true);
                 _procesoIdActual = null;
+
                 if (tablaResultados) tablaResultados.innerHTML = "";
+                _chartNacional = destroyChart(_chartNacional);
+                _chartDimension = destroyChart(_chartDimension);
             }
         }
 
@@ -335,6 +371,7 @@
             if (tablaResultados) tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
 
             try {
+                // 1) tabla por dimensión
                 const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
                 const data = await res.json();
 
@@ -342,15 +379,42 @@
                     if (tablaResultados) {
                         tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
                     }
+                    _chartDimension = destroyChart(_chartDimension);
                     return;
                 }
 
+                // 2) mapa GUID -> nombre
                 const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
                 const mapJson = await mapResp.json();
                 const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
 
+                // 3) tabla traducida
                 renderTabla(data.dimension || dim, data.actualizadoUtc, data.items || [], map);
 
+                // 4) chart dimensión (agrupa por opción, no por provincia/cantón)
+                // Queremos barras por candidato/lista/blanco dentro de la dimensión seleccionada.
+                const items = data.items || [];
+                const agg = {};
+                for (const it of items) {
+                    const op = getOpcion(it);
+                    const nombre = map[op] || op || "N/D";
+                    const v = getVotos(it);
+                    agg[nombre] = (agg[nombre] || 0) + v;
+                }
+
+                const labelsDim = Object.keys(agg);
+                const valuesDim = labelsDim.map(k => agg[k]);
+                const totalDim = sum(valuesDim);
+
+                if (tituloChartDim) tituloChartDim.textContent = `Distribución - ${dim}`;
+                if (chartDimInfo) chartDimInfo.textContent = `Total votos contabilizados en esta vista: ${totalDim.toLocaleString("es-EC")}`;
+
+                _chartDimension = destroyChart(_chartDimension);
+                if (labelsDim.length > 0) {
+                    _chartDimension = buildBarChart("chartDimension", labelsDim, valuesDim, totalDim);
+                }
+
+                // 5) nacional (top + blanco)
                 const resNat = await fetch(`/Resultados/Nacional?procesoId=${encodeURIComponent(_procesoIdActual)}`);
                 const nat = await resNat.json();
                 if (!nat.ok) return;
@@ -358,17 +422,16 @@
                 const total = Number(nat.totalVotos || 0);
                 setTexto("totalVotos", total.toLocaleString("es-EC"));
 
-                // ✅ Chart: usa top1, top2, blanco (si quieres top3, lo agregas en backend)
-                const labels = [];
-                const values = [];
+                const labelsNat = [];
+                const valuesNat = [];
 
                 function pushItem(item, fallbackLabel) {
                     const votos = getVotos(item);
                     const op = getOpcion(item);
                     const name = map[op] || op || fallbackLabel;
                     if (votos > 0) {
-                        labels.push(name);
-                        values.push(votos);
+                        labelsNat.push(name);
+                        valuesNat.push(votos);
                     }
                 }
 
@@ -377,26 +440,31 @@
 
                 const blancoVotos = getVotos(nat.blanco);
                 if (blancoVotos > 0) {
-                    labels.push("Blanco");
-                    values.push(blancoVotos);
+                    labelsNat.push("Blanco");
+                    valuesNat.push(blancoVotos);
                 }
 
-                buildChartBar(labels, values);
+                _chartNacional = destroyChart(_chartNacional);
+                _chartNacional = buildBarChart("chartNacional", labelsNat, valuesNat, total);
 
             } catch (err) {
                 if (tablaResultados) {
                     tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
                 }
+                _chartDimension = destroyChart(_chartDimension);
             }
         }
 
+        // listeners
         if (dimensionSelect) {
             dimensionSelect.addEventListener("change", () => cargarReporte());
         }
 
+        // init
         document.addEventListener("DOMContentLoaded", () => cargarEstadoYResultados());
     </script>
 }
+
 
 
 

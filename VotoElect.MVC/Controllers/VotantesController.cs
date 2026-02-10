@@ -138,7 +138,7 @@ public class VotantesController : Controller
             CandidatoIds = candidatoIds ?? new List<string>()
         };
 
-        if (tipoEleccion == "Presidente_SiNoBlanco")
+        if (tipoEleccion == "Nominal")
         {
             if (string.IsNullOrWhiteSpace(vm.PresidenteCandidatoId))
             {
@@ -184,7 +184,7 @@ public class VotantesController : Controller
             CodigoUnico = codigo
         };
 
-        if (vm.TipoEleccion == "Presidente_SiNoBlanco")
+        if (vm.TipoEleccion == "Nominal")
         {
             req.PresidenteCandidatoId = vm.PresidenteCandidatoId;
             req.OpcionPresidente = null;

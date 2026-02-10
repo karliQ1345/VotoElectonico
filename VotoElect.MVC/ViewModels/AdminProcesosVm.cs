@@ -10,7 +10,7 @@ public class AdminProcesosVm
     public List<ProcesoResumenDto> Procesos { get; set; } = new();
 
     public string Nombre { get; set; } = "";
-    public string TipoProceso { get; set; } = "Asambleistas";
+    public string TipoProceso { get; set; } = "Plurinominal";
     public DateTime InicioUtc { get; set; } = DateTime.UtcNow.AddHours(1);
     public DateTime FinUtc { get; set; } = DateTime.UtcNow.AddDays(1);
 

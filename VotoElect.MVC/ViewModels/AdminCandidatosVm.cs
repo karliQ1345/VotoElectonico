@@ -10,7 +10,7 @@ public class AdminCandidatosVm
     public List<ProcesoResumenDto> Procesos { get; set; } = new();
 
     public string ProcesoElectoralId { get; set; } = "";
-    public string Tipo { get; set; } = "Asambleistas";
+    public string Tipo { get; set; } = "Plurinominal";
     public string Titulo { get; set; } = "";
     public int? MaxSeleccionIndividual { get; set; }
 

@@ -24,7 +24,7 @@ public class VotantesConfirmarVm
     public string? OpcionPresidente { get; set; }
     public string? PresidenteCandidatoId { get; set; }
 
-    // Asambleistas
+    // Plurinominal
     public string? PartidoListaId { get; set; }
     public List<string> CandidatoIds { get; set; } = new();
 

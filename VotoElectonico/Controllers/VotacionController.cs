@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VotoElectonico.Data;
@@ -8,8 +7,8 @@ using VotoElectonico.DTOs.Email;
 using VotoElectonico.DTOs.Votacion;
 using VotoElectonico.Models;
 using VotoElectonico.Models.Enums;
-using VotoElectonico.Utils;
 using VotoElectonico.Services.Email;
+using VotoElectonico.Utils;
 
 namespace VotoElectonico.Controllers
 {
@@ -126,7 +125,6 @@ namespace VotoElectonico.Controllers
 
         private static BoletaDataDto BuildBoletaDto(Eleccion eleccion, Guid procesoId)
         {
-
             var dto = new BoletaDataDto
             {
                 ProcesoElectoralId = procesoId.ToString(),
@@ -220,7 +218,6 @@ namespace VotoElectonico.Controllers
 
             if (eleccion.Tipo == EleccionTipo.Nominal)
             {
-                // NUEVO: votar por candidato (GUID) o BLANCO
                 var raw = (req.PresidenteCandidatoId ?? "").Trim();
 
                 if (!string.IsNullOrWhiteSpace(raw))
@@ -247,7 +244,6 @@ namespace VotoElectonico.Controllers
                 }
                 else
                 {
-                    // FALLBACK OPCIONAL: seguir aceptando SI/NO/BLANCO (si tu MVC viejo todavía lo manda)
                     var op = (req.OpcionPresidente ?? "").Trim().ToUpperInvariant();
                     if (op != "SI" && op != "NO" && op != "BLANCO")
                         return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Opción Presidente inválida (SI/NO/BLANCO)."));
@@ -318,7 +314,10 @@ namespace VotoElectonico.Controllers
             if (junta.Cerrada)
                 return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("La junta ya fue finalizada. No se puede emitir voto."));
 
-            string opcion = "N/D";
+            // =========================
+            // OPCION SOLO PARA NOMINAL
+            // =========================
+            string opcionNominal = "N/D";
 
             if (eleccion.Tipo == EleccionTipo.Nominal)
             {
@@ -326,32 +325,64 @@ namespace VotoElectonico.Controllers
 
                 if (!string.IsNullOrWhiteSpace(raw))
                 {
-                    opcion = raw.Equals("BLANCO", StringComparison.OrdinalIgnoreCase) ? "BLANCO" : raw; // GUID string
+                    opcionNominal = raw.Equals("BLANCO", StringComparison.OrdinalIgnoreCase) ? "BLANCO" : raw; // GUID candidato
                 }
                 else
                 {
                     var op = (req.OpcionPresidente ?? "").Trim().ToUpperInvariant();
-                    opcion = (op == "SI" || op == "NO" || op == "BLANCO") ? op : "N/D";
+                    opcionNominal = (op == "SI" || op == "NO" || op == "BLANCO") ? op : "N/D";
                 }
-            }
-            else
-            {
-                var listaId = (req.PartidoListaId ?? "").Trim();
-                if (!string.IsNullOrWhiteSpace(listaId)) opcion = listaId;     // GUID lista
-                else opcion = "INDIVIDUAL";
             }
 
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
             try
             {
-                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Nacional, "Nacional", opcion, ct);
-                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Provincia, junta.Provincia, opcion, ct);
-                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Canton, junta.Canton, opcion, ct);
-                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Parroquia, junta.Parroquia ?? "SIN_PARROQUIA", opcion, ct);
+                var generoDim = (user.Genero ?? "NO_ESPECIFICA").Trim();
 
-                var genero = (user.Genero ?? "NO_ESPECIFICA").Trim();
-                await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Genero, genero, opcion, ct);
+                // ==========================================================
+                // ✅ AGREGACIÓN CORREGIDA: NO EXISTE "INDIVIDUAL"
+                // ==========================================================
+                if (eleccion.Tipo == EleccionTipo.Nominal)
+                {
+                    // Nominal: 1 voto a una opción (BLANCO / GUID / SI / NO)
+                    await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Nacional, "Nacional", opcionNominal, ct);
+                    await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Provincia, junta.Provincia, opcionNominal, ct);
+                    await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Canton, junta.Canton, opcionNominal, ct);
+                    await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Parroquia, junta.Parroquia ?? "SIN_PARROQUIA", opcionNominal, ct);
+                    await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Genero, generoDim, opcionNominal, ct);
+                }
+                else
+                {
+                    var listaId = (req.PartidoListaId ?? "").Trim();
+
+                    if (!string.IsNullOrWhiteSpace(listaId))
+                    {
+                        // Plancha: 1 voto a la lista (GUID lista)
+                        await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Nacional, "Nacional", listaId, ct);
+                        await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Provincia, junta.Provincia, listaId, ct);
+                        await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Canton, junta.Canton, listaId, ct);
+                        await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Parroquia, junta.Parroquia ?? "SIN_PARROQUIA", listaId, ct);
+                        await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Genero, generoDim, listaId, ct);
+                    }
+                    else
+                    {
+                        // Individual: 1 voto por cada candidato seleccionado (GUID candidato)
+                        var candIds = req.CandidatoIds ?? new List<string>();
+
+                        foreach (var cidStr in candIds)
+                        {
+                            var cid = (cidStr ?? "").Trim();
+                            if (string.IsNullOrWhiteSpace(cid)) continue;
+
+                            await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Nacional, "Nacional", cid, ct);
+                            await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Provincia, junta.Provincia, cid, ct);
+                            await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Canton, junta.Canton, cid, ct);
+                            await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Parroquia, junta.Parroquia ?? "SIN_PARROQUIA", cid, ct);
+                            await IncrementarResultadoAsync(procesoId, eleccionId, DimensionReporte.Genero, generoDim, cid, ct);
+                        }
+                    }
+                }
 
                 // Guardar voto anónimo
                 var voto = new VotoAnonimo
@@ -466,6 +497,7 @@ namespace VotoElectonico.Controllers
     Este comprobante confirma participación. No incluye la selección del voto.
   </p>
 </div>";
+
                 var send = new SendEmailDto
                 {
                     ToEmail = user.Email,
@@ -503,10 +535,8 @@ namespace VotoElectonico.Controllers
             {
                 await tx.RollbackAsync(ct);
                 throw;
-            }  
+            }
         }
-
-
 
         [AllowAnonymous]
         [HttpGet("comprobante/{token}")]
@@ -514,12 +544,10 @@ namespace VotoElectonico.Controllers
         {
             try
             {
-                // 1. Validación de entrada
                 token = (token ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(token))
                     return Content("Token inválido.", "text/plain");
 
-                // 2. Consulta del comprobante (Sin rastreo para mejorar rendimiento en Render)
                 var comp = await _db.ComprobantesVoto
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.PublicToken == token, ct);
@@ -527,7 +555,6 @@ namespace VotoElectonico.Controllers
                 if (comp == null)
                     return Content("El comprobante no existe o el enlace ha expirado.", "text/plain");
 
-                // 3. Carga de datos relacionados de forma independiente (Evita problemas de pooling)
                 var user = await _db.Usuarios.AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == comp.UsuarioId, ct);
 
@@ -540,8 +567,6 @@ namespace VotoElectonico.Controllers
                 var junta = await _db.Juntas.AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == comp.JuntaId, ct);
 
-                // 4. Variables de seguridad para evitar NullReferenceException en el HTML
-                // Si el usuario es nulo, es un error de integridad grave
                 if (user == null)
                     return Content("No se pudieron recuperar los datos del votante.", "text/plain");
 
@@ -552,7 +577,6 @@ namespace VotoElectonico.Controllers
                 string codigoJunta = junta?.Codigo ?? "N/A";
                 string fotoUrl = user.FotoUrl ?? "";
 
-                // 5. Generación del HTML con manejo de caracteres UTF-8
                 var html = $@"
 <!doctype html>
 <html lang='es'>
@@ -583,8 +607,8 @@ namespace VotoElectonico.Controllers
             <div class='photo-box'>
                 <strong>Foto</strong><br/><br/>
                 {(string.IsNullOrWhiteSpace(fotoUrl)
-                            ? "<div style='color:#999; padding:40px 0;'>Sin foto</div>"
-                            : $"<img src='{fotoUrl}' style='width:130px; height:130px; object-fit:cover; border-radius:6px;'/>")}
+                    ? "<div style='color:#999; padding:40px 0;'>Sin foto</div>"
+                    : $"<img src='{fotoUrl}' style='width:130px; height:130px; object-fit:cover; border-radius:6px;'/>")}
             </div>
 
             <div class='details'>
@@ -611,16 +635,15 @@ namespace VotoElectonico.Controllers
             }
             catch (Exception ex)
             {
-                // 6. Registro del error en los logs de Render para diagnóstico
                 Console.WriteLine($"[CRITICAL ERROR - ComprobantePublico]: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
 
                 return Content("Ocurrió un error inesperado al procesar su solicitud. Por favor, intente más tarde.", "text/plain");
             }
         }
+
         private static string CreatePublicToken()
         {
-            // 32 bytes aleatorios, base64url (sin + / =)
             var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
             return Base64UrlEncode(bytes);
         }
@@ -632,6 +655,7 @@ namespace VotoElectonico.Controllers
                 .Replace("/", "_")
                 .Replace("=", "");
         }
+
         private async Task IncrementarResultadoAsync(Guid procesoId, Guid eleccionId, DimensionReporte dim, string dimValor, string opcion, CancellationToken ct)
         {
             dimValor = (dimValor ?? "").Trim();
@@ -667,3 +691,4 @@ namespace VotoElectonico.Controllers
         }
     }
 }
+

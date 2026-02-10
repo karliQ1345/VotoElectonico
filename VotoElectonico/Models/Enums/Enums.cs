@@ -21,8 +21,8 @@
 
     public enum EleccionTipo
     {
-        Presidente_SiNoBlanco = 1,
-        Asambleistas = 2
+        Nominal = 1,
+        Plurinominal = 2
     }
 
     public enum ComprobanteEstado

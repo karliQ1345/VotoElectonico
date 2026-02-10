@@ -12,7 +12,7 @@ namespace VotoElectonico.Models
         public DimensionReporte Dimension { get; set; }
         public string DimensionValor { get; set; } = null!; // "Pichincha", "Quito", "F", etc.
 
-        // Para Presidente_SiNoBlanco: opcion = "SI"/"NO"/"BLANCO"
+        // Para Nominal: opcion = "SI"/"NO"/"BLANCO"
         public string Opcion { get; set; } = null!;
 
         // Para Asambleístas: puedes usar Opcion = CandidatoId o ListaId (según tipo de conteo)

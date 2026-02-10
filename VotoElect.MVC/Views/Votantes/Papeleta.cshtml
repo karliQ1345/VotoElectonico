@@ -7,7 +7,7 @@
 
     var b = Model.Boleta;
     var tipo = (b.TipoEleccion ?? "").Trim();
-    var esSiNo = tipo.Equals("Presidente_SiNoBlanco", StringComparison.OrdinalIgnoreCase);
+    var esNominal = tipo.Equals("Nominal", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="vote-shell">

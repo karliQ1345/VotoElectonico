@@ -218,7 +218,7 @@ namespace VotoElectonico.Controllers
             // =========================
             object votoPayload;
 
-            if (eleccion.Tipo == EleccionTipo.Presidente_SiNoBlanco)
+            if (eleccion.Tipo == EleccionTipo.Nominal)
             {
                 // NUEVO: votar por candidato (GUID) o BLANCO
                 var raw = (req.PresidenteCandidatoId ?? "").Trim();
@@ -255,7 +255,7 @@ namespace VotoElectonico.Controllers
                     votoPayload = new { tipo = "Presidente", modo = "SiNoBlanco", opcion = op };
                 }
             }
-            else // Asambleistas
+            else // Plurinominal
             {
                 var listaId = req.PartidoListaId?.Trim();
                 var candIds = req.CandidatoIds;
@@ -275,7 +275,7 @@ namespace VotoElectonico.Controllers
                     if (!existeLista)
                         return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Lista no existe."));
 
-                    votoPayload = new { tipo = "Asambleistas", modo = "Plancha", partidoListaId = lid };
+                    votoPayload = new { tipo = "Plurinominal", modo = "Plancha", partidoListaId = lid };
                 }
                 else
                 {
@@ -299,7 +299,7 @@ namespace VotoElectonico.Controllers
                     if (validos != parsed.Count)
                         return BadRequest(ApiResponse<EmitirVotoResponseDto>.Fail("Uno o más candidatos no existen o no pertenecen a esta elección."));
 
-                    votoPayload = new { tipo = "Asambleistas", modo = "Individual", candidatoIds = parsed };
+                    votoPayload = new { tipo = "Plurinominal", modo = "Individual", candidatoIds = parsed };
                 }
             }
 
@@ -320,7 +320,7 @@ namespace VotoElectonico.Controllers
 
             string opcion = "N/D";
 
-            if (eleccion.Tipo == EleccionTipo.Presidente_SiNoBlanco)
+            if (eleccion.Tipo == EleccionTipo.Nominal)
             {
                 var raw = (req.PresidenteCandidatoId ?? "").Trim();
 

@@ -33,8 +33,8 @@ namespace VotoElectonico.Controllers
             if (string.IsNullOrWhiteSpace(req.Titulo))
                 return BadRequest(ApiResponse<IdResponseDto>.Fail("Titulo requerido."));
 
-            if (tipo == EleccionTipo.Asambleistas && (!req.MaxSeleccionIndividual.HasValue || req.MaxSeleccionIndividual.Value <= 0))
-                return BadRequest(ApiResponse<IdResponseDto>.Fail("MaxSeleccionIndividual requerido para Asambleistas."));
+            if (tipo == EleccionTipo.Plurinominal && (!req.MaxSeleccionIndividual.HasValue || req.MaxSeleccionIndividual.Value <= 0))
+                return BadRequest(ApiResponse<IdResponseDto>.Fail("MaxSeleccionIndividual requerido para Plurinominal."));
 
             var e = new Eleccion
             {
@@ -42,7 +42,7 @@ namespace VotoElectonico.Controllers
                 ProcesoElectoralId = procesoId,
                 Tipo = tipo,
                 Titulo = req.Titulo.Trim(),
-                MaxSeleccionIndividual = tipo == EleccionTipo.Asambleistas ? req.MaxSeleccionIndividual : null,
+                MaxSeleccionIndividual = tipo == EleccionTipo.Plurinominal ? req.MaxSeleccionIndividual : null,
                 Activa = true
             };
 

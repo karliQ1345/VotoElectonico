@@ -55,7 +55,6 @@
                         <i class="fas fa-info-circle mr-2 text-primary"></i>
                         <b>Mensaje:</b> <span id="estadoMsg">--</span>
                     </p>
-
                 </div>
             </div>
 
@@ -86,6 +85,14 @@
                         <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
                             <div class="font-weight-bold mb-2">Distribución</div>
 
+                            <!-- ✅ GRÁFICO (Barras o Pastel) -->
+                            <div style="height:260px;">
+                                <canvas id="chartNacional"></canvas>
+                            </div>
+
+                            <hr>
+
+                            <!-- ✅ Tus barras antiguas (opcional, las dejo por si quieres ver porcentajes textual) -->
                             <div class="mb-2 d-flex justify-content-between">
                                 <span id="lblA">Candidato A</span><span class="mono" id="aPct">0%</span>
                             </div>
@@ -104,7 +111,8 @@
                                 <span id="lblBl">Blanco</span><span class="mono" id="blPct">0%</span>
                             </div>
                             <div class="progress" style="height: 12px;">
-                                <div class="progress-bar" role="progressbar" id="aBar" style="width:0%"></div>
+                                <!-- ✅ FIX: antes estaba id="aBar" duplicado -->
+                                <div class="progress-bar" role="progressbar" id="blBar" style="width:0%"></div>
                             </div>
 
                             <hr>
@@ -120,7 +128,6 @@
         <div class="row mt-2">
             <div class="col-12">
                 <div class="p-4 card-soft">
-
                     <div class="d-flex flex-wrap align-items-end justify-content-between">
                         <div>
                             <h4 class="mb-1">Reportes y filtros</h4>
@@ -134,17 +141,12 @@
                                 <option value="Parroquia">Parroquia</option>
                                 <option value="Genero">Género</option>
                             </select>
-@* 
-                            <a asp-controller="Admin" asp-action="Procesos" class="btn btn-primary">
-                                Panel Admin
-                            </a> *@
                         </div>
                     </div>
 
                     <hr />
 
                     <div id="tablaResultados" class="table-responsive"></div>
-
                 </div>
             </div>
         </div>
@@ -153,6 +155,10 @@
 </div>
 
 @section Scripts {
+
+    <!-- ✅ Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         // --- Estado / UI ---
         const estadoPill = document.getElementById("estadoPill");
@@ -175,7 +181,6 @@
         }
 
         function getVotos(x) {
-            // soporta camelCase y PascalCase
             return Number(x?.votos ?? x?.Votos ?? 0);
         }
 
@@ -183,46 +188,46 @@
             return String(x?.opcion ?? x?.Opcion ?? "");
         }
 
-                   function renderTabla(dimension, actualizadoUtc, items, map) {
-        if(!items || items.length === 0){
-          tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
-          return;
-        }
+        function renderTabla(dimension, actualizadoUtc, items, map) {
+            if (!items || items.length === 0) {
+                tablaResultados.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dimension)}.</div>`;
+                return;
+            }
 
-                   items.sort((a,b)=> getVotos(b) - getVotos(a));
+            items.sort((a, b) => getVotos(b) - getVotos(a));
 
-          const filas = items.map(it => {
-            const opcion = getOpcion(it);
-            const opcionNombre = (map && map[opcion]) ? map[opcion] : opcion;
+            const filas = items.map(it => {
+                const opcion = getOpcion(it);
+                const opcionNombre = (map && map[opcion]) ? map[opcion] : opcion;
 
-            return `
-              <tr>
-                <td>${escapeHtml(it.dimensionValor ?? it.DimensionValor ?? "")}</td>
-                <td>${escapeHtml(opcionNombre)}</td>
-                <td class="text-right">${getVotos(it).toLocaleString("es-EC")}</td>
-              </tr>
+                return `
+                  <tr>
+                    <td>${escapeHtml(it.dimensionValor ?? it.DimensionValor ?? "")}</td>
+                    <td>${escapeHtml(opcionNombre)}</td>
+                    <td class="text-right">${getVotos(it).toLocaleString("es-EC")}</td>
+                  </tr>
+                `;
+            }).join("");
+
+            const utc = actualizadoUtc ? String(actualizadoUtc).replace("T", " ").substring(0, 16) : "--";
+
+            tablaResultados.innerHTML = `
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                  <div class="small-muted">Dimensión: <b>${escapeHtml(dimension)}</b></div>
+                  <div class="small-muted">Actualizado (UTC): <b>${escapeHtml(utc)}</b></div>
+                </div>
+
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>${escapeHtml(dimension)}</th>
+                      <th>Opción</th>
+                      <th class="text-right">Votos</th>
+                    </tr>
+                  </thead>
+                  <tbody>${filas}</tbody>
+                </table>
             `;
-          }).join("");
-
-          const utc = actualizadoUtc ? String(actualizadoUtc).replace("T"," ").substring(0,16) : "--";
-
-          tablaResultados.innerHTML = `
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-              <div class="small-muted">Dimensión: <b>${escapeHtml(dimension)}</b></div>
-              <div class="small-muted">Actualizado (UTC): <b>${escapeHtml(utc)}</b></div>
-            </div>
-
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>${escapeHtml(dimension)}</th>
-                  <th>Opción</th>
-                  <th class="text-right">Votos</th>
-                </tr>
-              </thead>
-              <tbody>${filas}</tbody>
-            </table>
-          `;
         }
 
         function setTexto(id, text) {
@@ -278,11 +283,11 @@
                 if (esActivo) {
                     setPill("En proceso", "pill pill-warn");
                     setTexto("estadoMsg", "Proceso electoral en proceso; resultados parciales.");
-                    mostrarEnProceso(true);   // SOLO mensaje
+                    mostrarEnProceso(true);
                 } else {
                     setPill("Finalizado", "pill pill-ok");
                     setTexto("estadoMsg", "Resultados publicados.");
-                    mostrarEnProceso(false);  // MOSTRAR resultados
+                    mostrarEnProceso(false);
                 }
 
                 await cargarReporte();
@@ -296,49 +301,108 @@
             }
         }
 
-               async function cargarReporte() {
-          if (!_procesoIdActual) return;
+        // ✅ Chart.js instance
+        let _chartNacional = null;
 
-          const dim = (dimensionSelect?.value || "Provincia");
-          if (tablaResultados) tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
+        function buildChart(labels, values, tipo /* 'bar' | 'pie' */) {
+            const canvas = document.getElementById("chartNacional");
+            if (!canvas) return;
 
-          try {
-            // 1) tabla por dimensión
-            const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
-            const data = await res.json();
-
-            if (!data.ok) {
-              if (tablaResultados) {
-                tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
-              }
-              return;
+            if (_chartNacional) {
+                _chartNacional.destroy();
+                _chartNacional = null;
             }
 
-            // 2) mapa GUID -> nombre (ANTES de renderizar tabla)
-            const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
-            const mapJson = await mapResp.json();
-            const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
+            _chartNacional = new Chart(canvas, {
+                type: tipo,
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Votos",
+                        data: values
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: tipo !== "bar" }
+                    },
+                    scales: tipo === "bar" ? {
+                        y: { beginAtZero: true }
+                    } : {}
+                }
+            });
+        }
 
-            // 3) render tabla ya “traducida”
-            renderTabla(data.dimension || dim, data.actualizadoUtc, data.items || [], map);
+        async function cargarReporte() {
+            if (!_procesoIdActual) return;
 
-            // 4) nacional
-            const resNat = await fetch(`/Resultados/Nacional?procesoId=${encodeURIComponent(_procesoIdActual)}`);
-            const nat = await resNat.json();
-            if (!nat.ok) return;
+            const dim = (dimensionSelect?.value || "Provincia");
+            if (tablaResultados) tablaResultados.innerHTML = `<div class="small-muted">Cargando reporte...</div>`;
 
-            const total = Number(nat.totalVotos || 0);
-            setTexto("totalVotos", total.toLocaleString("es-EC"));
+            try {
+                // 1) tabla por dimensión
+                const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
+                const data = await res.json();
 
-            renderBar("a", nat.top1, total, map, false);
-            renderBar("b", nat.top2, total, map, false);
-            renderBar("bl", nat.blanco, total, map, true);
+                if (!data.ok) {
+                    if (tablaResultados) {
+                        tablaResultados.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
+                    }
+                    return;
+                }
 
-          } catch (err) {
-            if (tablaResultados) {
-              tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
+                // 2) mapa GUID -> nombre
+                const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
+                const mapJson = await mapResp.json();
+                const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
+
+                // 3) render tabla traducida
+                renderTabla(data.dimension || dim, data.actualizadoUtc, data.items || [], map);
+
+                // 4) nacional
+                const resNat = await fetch(`/Resultados/Nacional?procesoId=${encodeURIComponent(_procesoIdActual)}`);
+                const nat = await resNat.json();
+                if (!nat.ok) return;
+
+                const total = Number(nat.totalVotos || 0);
+                setTexto("totalVotos", total.toLocaleString("es-EC"));
+
+                renderBar("a", nat.top1, total, map, false);
+                renderBar("b", nat.top2, total, map, false);
+                renderBar("bl", nat.blanco, total, map, true);
+
+                // ✅ Gráfico nacional (cambia "bar" por "pie" si quieres pastel)
+                const labels = [];
+                const values = [];
+
+                function pushItem(item, fallbackLabel) {
+                    const votos = getVotos(item);
+                    const op = getOpcion(item);
+                    const name = map[op] || op || fallbackLabel;
+                    if (votos > 0) {
+                        labels.push(name);
+                        values.push(votos);
+                    }
+                }
+
+                pushItem(nat.top1, "Top 1");
+                pushItem(nat.top2, "Top 2");
+
+                const blancoVotos = getVotos(nat.blanco);
+                if (blancoVotos > 0) {
+                    labels.push("Blanco");
+                    values.push(blancoVotos);
+                }
+
+                buildChart(labels, values, "bar"); // <- "pie" para pastel
+
+            } catch (err) {
+                if (tablaResultados) {
+                    tablaResultados.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
+                }
             }
-          }
         }
 
         function renderBar(prefix, item, total, map, esBlanco) {
@@ -362,7 +426,7 @@
             dimensionSelect.addEventListener("change", () => cargarReporte());
         }
 
-        // init real
+        // init
         document.addEventListener("DOMContentLoaded", () => cargarEstadoYResultados());
     </script>
 }

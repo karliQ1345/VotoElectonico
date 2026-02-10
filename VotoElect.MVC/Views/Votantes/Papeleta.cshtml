@@ -28,7 +28,7 @@
             <input type="hidden" name="tipoEleccion" value="@b.TipoEleccion" />
 
             <div class="vote-content">
-                @if (esSiNo)
+                @if (esNominal)
                 {
                     <partial name="_PapeletaSiNo" model="b" />
                 }

@@ -36,8 +36,10 @@
             <h1 class="display-4">Publicación oficial</h1>
         </div>
 
+        <!-- ✅ FILA 1: Estado (angosto) + Nacional (ancho) -->
         <div class="row">
-            <div class="col-lg-5 mb-4">
+            <!-- Estado del proceso -->
+            <div class="col-lg-4 mb-4 order-1 order-lg-1">
                 <div class="p-4 card-soft">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
@@ -58,7 +60,8 @@
                 </div>
             </div>
 
-            <div class="col-lg-7 mb-4">
+            <!-- Resultados nacionales -->
+            <div class="col-lg-8 mb-4 order-2 order-lg-2">
                 <div class="p-4 card-soft">
                     <h4 class="mb-3">Resultados nacionales</h4>
 
@@ -92,7 +95,7 @@
 
                             <hr>
 
-                            <!-- ✅ Tus barras antiguas (opcional, las dejo por si quieres ver porcentajes textual) -->
+                            <!-- ✅ Barras antiguas (opcional) -->
                             <div class="mb-2 d-flex justify-content-between">
                                 <span id="lblA">Candidato A</span><span class="mono" id="aPct">0%</span>
                             </div>
@@ -111,7 +114,6 @@
                                 <span id="lblBl">Blanco</span><span class="mono" id="blPct">0%</span>
                             </div>
                             <div class="progress" style="height: 12px;">
-                                <!-- ✅ FIX: antes estaba id="aBar" duplicado -->
                                 <div class="progress-bar" role="progressbar" id="blBar" style="width:0%"></div>
                             </div>
 
@@ -124,7 +126,7 @@
             </div>
         </div>
 
-        <!-- Reportes + filtros -->
+        <!-- ✅ FILA 2: Reportes full width -->
         <div class="row mt-2">
             <div class="col-12">
                 <div class="p-4 card-soft">
@@ -180,13 +182,8 @@
                 .replaceAll("'", "&#039;");
         }
 
-        function getVotos(x) {
-            return Number(x?.votos ?? x?.Votos ?? 0);
-        }
-
-        function getOpcion(x) {
-            return String(x?.opcion ?? x?.Opcion ?? "");
-        }
+        function getVotos(x) { return Number(x?.votos ?? x?.Votos ?? 0); }
+        function getOpcion(x) { return String(x?.opcion ?? x?.Opcion ?? ""); }
 
         function renderTabla(dimension, actualizadoUtc, items, map) {
             if (!items || items.length === 0) {
@@ -325,12 +322,8 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: tipo !== "bar" }
-                    },
-                    scales: tipo === "bar" ? {
-                        y: { beginAtZero: true }
-                    } : {}
+                    plugins: { legend: { display: tipo !== "bar" } },
+                    scales: tipo === "bar" ? { y: { beginAtZero: true } } : {}
                 }
             });
         }
@@ -358,7 +351,7 @@
                 const mapJson = await mapResp.json();
                 const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
 
-                // 3) render tabla traducida
+                // 3) render tabla
                 renderTabla(data.dimension || dim, data.actualizadoUtc, data.items || [], map);
 
                 // 4) nacional
@@ -373,7 +366,7 @@
                 renderBar("b", nat.top2, total, map, false);
                 renderBar("bl", nat.blanco, total, map, true);
 
-                // ✅ Gráfico nacional (cambia "bar" por "pie" si quieres pastel)
+                // ✅ gráfico nacional (bar/pie)
                 const labels = [];
                 const values = [];
 
@@ -396,7 +389,7 @@
                     values.push(blancoVotos);
                 }
 
-                buildChart(labels, values, "bar"); // <- "pie" para pastel
+                buildChart(labels, values, "bar"); // cambia a "pie" si quieres pastel
 
             } catch (err) {
                 if (tablaResultados) {
@@ -421,12 +414,11 @@
             if (bar) bar.style.width = pct + "%";
         }
 
-        // listeners
         if (dimensionSelect) {
             dimensionSelect.addEventListener("change", () => cargarReporte());
         }
 
-        // init
         document.addEventListener("DOMContentLoaded", () => cargarEstadoYResultados());
     </script>
 }
+

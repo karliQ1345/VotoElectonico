@@ -36,12 +36,14 @@
             <h1 class="display-4">Publicación oficial</h1>
         </div>
 
-        <!-- Fila: Estado (izq) + Reportes y filtros (der) -->
         <div class="row">
-            <!-- IZQUIERDA: Estado + Nacional (en la misma columna, uno debajo del otro "col-12") -->
+            <!-- =========================
+                 COLUMNA IZQUIERDA:
+                 Estado + Nacional (uno debajo del otro)
+                 ========================= -->
             <div class="col-12 mb-4">
-                <!-- Estado -->
-                <div class="p-4 card-soft mb-4">
+                <!-- Estado del proceso -->
+                <div class="p-4 card-soft mb-3">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
                             <h4 class="mb-1">Estado del proceso</h4>
@@ -60,7 +62,7 @@
                     </p>
                 </div>
 
-                <!-- Resultados Nacionales (abajo del estado) -->
+                <!-- Resultados nacionales -->
                 <div class="p-4 card-soft">
                     <h4 class="mb-3">Resultados nacionales</h4>
 
@@ -83,18 +85,22 @@
                         <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
                             <div class="font-weight-bold mb-2">Distribución</div>
 
-                            <!-- Gráfica Nacional -->
-                            <div style="height:280px;">
+                            <!-- Gráfico nacional -->
+                            <div style="height: 260px;">
                                 <canvas id="chartNacional"></canvas>
                             </div>
 
                             <hr>
+                            <div class="small-muted">*En el sistema real estos datos vendrán de los reportes de cada Junta.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- DERECHA: Reportes y filtros -->
+            <!-- =========================
+                 COLUMNA DERECHA:
+                 Reportes y filtros (Gráfica reemplaza tabla)
+                 ========================= -->
             <div class="col-12 mb-4">
                 <div class="p-4 card-soft">
                     <div class="d-flex flex-wrap align-items-end justify-content-between">
@@ -115,56 +121,51 @@
 
                     <hr />
 
-                    <!-- Aquí va SOLO la gráfica de filtros ( se sustituye la tabla) -->
-                    <div id="bloqueChartFiltros" style="display:none;">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                            <div class="font-weight-bold" id="tituloChartFiltros">Distribución</div>
-                            <div class="small-muted" id="metaChartFiltros">Actualizado (UTC): --</div>
-                        </div>
-
-                        <div style="height:360px;">
-                            <canvas id="chartFiltros"></canvas>
-                        </div>
-
-                        <div class="small-muted mt-2" id="footChartFiltros"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="font-weight-bold" id="tituloFiltros">Distribución</div>
+                        <div class="small-muted">Actualizado (UTC): <b id="actualizadoFiltros">--</b></div>
                     </div>
 
-                    <div id="msgFiltros" class="small-muted"></div>
+                    <div id="msgFiltros" class="small-muted mb-2"></div>
+
+                    <!-- Gráfico filtros -->
+                    <div id="bloqueChartFiltros" style="display:none;">
+                        <div style="height: 360px;">
+                            <canvas id="chartFiltros"></canvas>
+                        </div>
+                        <div class="small-muted mt-2">
+                            Total votos contabilizados en esta vista: <b id="totalVistaFiltros">0</b>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </div><!-- /row -->
     </div>
 </div>
 
 @section Scripts {
-
-    <!-- Chart.js + DataLabels -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <script>
-        // --- Estado / UI ---
+        // =========================
+        // Helpers UI
+        // =========================
         const estadoPill = document.getElementById("estadoPill");
-        const estadoMsg = document.getElementById("estadoMsg");
+        const estadoMsg  = document.getElementById("estadoMsg");
         const rangoProceso = document.getElementById("rangoProceso");
-        const bloqueEnProceso = document.getElementById("bloqueEnProceso");
+
+        const bloqueEnProceso  = document.getElementById("bloqueEnProceso");
         const bloqueFinalizado = document.getElementById("bloqueFinalizado");
 
-        // --- Filtros ---
         const dimensionSelect = document.getElementById("dimensionSelect");
-        const bloqueChartFiltros = document.getElementById("bloqueChartFiltros");
-        const tituloChartFiltros = document.getElementById("tituloChartFiltros");
-        const metaChartFiltros = document.getElementById("metaChartFiltros");
-        const footChartFiltros = document.getElementById("footChartFiltros");
+
+        const tituloFiltros = document.getElementById("tituloFiltros");
+        const actualizadoFiltros = document.getElementById("actualizadoFiltros");
         const msgFiltros = document.getElementById("msgFiltros");
+        const bloqueChartFiltros = document.getElementById("bloqueChartFiltros");
+        const totalVistaFiltros = document.getElementById("totalVistaFiltros");
 
-        let _procesoIdActual = null;
-
-        // Charts
-        let _chartNacional = null;
-        let _chartFiltros = null;
-
-        // Helpers
         function escapeHtml(str) {
             return String(str ?? "")
                 .replaceAll("&", "&amp;")
@@ -182,11 +183,8 @@
             return String(x?.opcion ?? x?.Opcion ?? "");
         }
 
-        function getDimValor(x) {
-            return String(x?.dimensionValor ?? x?.DimensionValor ?? "");
-        }
-
-        function setTexto(el, text) {
+        function setTexto(id, text) {
+            const el = document.getElementById(id);
             if (el) el.textContent = text ?? "";
         }
 
@@ -206,86 +204,138 @@
             return d.toISOString().slice(0, 16).replace("T", " ");
         }
 
-        function destroyChart(ch) {
-            if (ch) { ch.destroy(); }
-            return null;
-        }
+        // =========================
+        // Estado global
+        // =========================
+        let _procesoIdActual = null;
+        let _chartNacional = null;
+        let _chartFiltros = null;
 
         // =========================
-        // Chart Nacional: barras con % arriba y totales
+        // Chart Nacional: barras con % arriba
         // =========================
-        function buildChartNacional(labels, votos, total) {
+        function buildChartNacional(labels, values, tipo /* 'bar' | 'pie' */) {
             const canvas = document.getElementById("chartNacional");
             if (!canvas) return;
 
-            _chartNacional = destroyChart(_chartNacional);
+            if (_chartNacional) {
+                _chartNacional.destroy();
+                _chartNacional = null;
+            }
+
+            const total = values.reduce((a, b) => a + b, 0);
+
+            const pluginPct = {
+                id: "pctLabels",
+                afterDatasetsDraw(chart) {
+                    if (chart.config.type !== "bar") return;
+
+                    const { ctx } = chart;
+                    const meta = chart.getDatasetMeta(0);
+
+                    ctx.save();
+                    ctx.font = "12px sans-serif";
+                    ctx.fillStyle = "#333";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "bottom";
+
+                    meta.data.forEach((bar, i) => {
+                        const v = values[i] || 0;
+                        if (v <= 0 || total <= 0) return;
+
+                        const pct = Math.round((v * 100) / total) + "%";
+                        ctx.fillText(pct, bar.x, bar.y - 8);
+                    });
+
+                    ctx.restore();
+                }
+            };
 
             _chartNacional = new Chart(canvas, {
-                type: "bar",
+                type: tipo,
                 data: {
                     labels,
                     datasets: [{
                         label: "Votos",
-                        data: votos
+                        data: values
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    layout: { padding: { top: 28 } }, // espacio para el % arriba
+                    layout: { padding: { top: 18 } }, // evita que se corte %
                     plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: true },
-                        datalabels: {
-                            anchor: "end",
-                            align: "end",
-                            clamp: true,
-                            formatter: (value) => {
-                                const pct = total > 0 ? Math.round((value * 100) / total) : 0;
-                                return pct + "%";
-                            }
-                        }
+                        legend: { display: tipo !== "bar" }
                     },
-                    scales: {
+                    scales: tipo === "bar" ? {
                         y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
+                    } : {}
                 },
-                plugins: [ChartDataLabels]
+                plugins: [pluginPct]
             });
         }
 
         // =========================
-        // Chart Filtros: agrupada con leyenda clickeable
+        // Chart Filtros: agrupada, leyenda clickeable, tooltip SOLO barra hover
         // =========================
         function buildGroupedChartFiltros(dimLabels, candidatosDatasets) {
             const canvas = document.getElementById("chartFiltros");
             if (!canvas) return null;
 
-            return new Chart(canvas, {
+            if (_chartFiltros) {
+                _chartFiltros.destroy();
+                _chartFiltros = null;
+            }
+
+            _chartFiltros = new Chart(canvas, {
                 type: "bar",
                 data: {
-                    labels: dimLabels,            // Cantones / Provincias / etc
-                    datasets: candidatosDatasets  // cada candidato es una serie -> leyenda clickeable
+                    labels: dimLabels,
+                    datasets: candidatosDatasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true }, // click para ocultar/mostrar candidato
-                        tooltip: { mode: "index", intersect: false },
-                        datalabels: { display: false } // si lo activas aquí se vuelve un caos visual
+
+                    interaction: {
+                        mode: "nearest",
+                        intersect: true
                     },
-                    interaction: { mode: "index", intersect: false },
+
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { font: { size: 12 } }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: "nearest",
+                            intersect: true,
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 14 },
+                            callbacks: {
+                                title: (items) => items?.[0]?.label ?? "",
+                                label: (ctx) => {
+                                    const name = ctx.dataset?.label ?? "Opción";
+                                    const v = ctx.parsed?.y ?? 0;
+                                    return `${name}: ${v}`;
+                                }
+                            }
+                        }
+                    },
+
                     scales: {
+                        x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } },
                         y: { beginAtZero: true, ticks: { precision: 0 } }
                     }
-                },
-                plugins: [ChartDataLabels]
+                }
             });
+
+            return _chartFiltros;
         }
 
         // =========================
-        // Estado + carga inicial
+        // Cargar Estado
         // =========================
         async function cargarEstadoYResultados() {
             try {
@@ -293,12 +343,13 @@
                 const estadoJson = await estadoResp.json();
 
                 if (!estadoJson.ok) {
-                    setTexto(estadoMsg, estadoJson.message || "Sin proceso.");
-                    setTexto(rangoProceso, "--");
+                    setTexto("estadoMsg", estadoJson.message || "Sin proceso.");
+                    setTexto("rangoProceso", "--");
                     setPill("Sin proceso", "pill pill-warn");
                     mostrarEnProceso(true);
                     _procesoIdActual = null;
-                    msgFiltros.innerHTML = "";
+
+                    msgFiltros.textContent = "";
                     bloqueChartFiltros.style.display = "none";
                     return;
                 }
@@ -311,17 +362,17 @@
 
                 const inicio = new Date(p.inicioUtc || p.InicioUtc);
                 const fin = new Date(p.finUtc || p.FinUtc);
-                setTexto(rangoProceso, `${fmt(inicio)} — ${fmt(fin)}`);
+                setTexto("rangoProceso", `${fmt(inicio)} — ${fmt(fin)}`);
 
                 const esActivo = estado.toLowerCase().includes("activo");
 
                 if (esActivo) {
                     setPill("En proceso", "pill pill-warn");
-                    setTexto(estadoMsg, "Proceso electoral en proceso; resultados parciales.");
+                    setTexto("estadoMsg", "Proceso electoral en proceso; resultados parciales.");
                     mostrarEnProceso(true);
                 } else {
                     setPill("Finalizado", "pill pill-ok");
-                    setTexto(estadoMsg, "Resultados publicados.");
+                    setTexto("estadoMsg", "Resultados publicados.");
                     mostrarEnProceso(false);
                 }
 
@@ -329,139 +380,163 @@
                 await cargarFiltros();
 
             } catch (e) {
-                setTexto(estadoMsg, "Error consultando el estado.");
-                setTexto(rangoProceso, "--");
+                setTexto("estadoMsg", "Error consultando el estado.");
+                setTexto("rangoProceso", "--");
                 setPill("Error", "pill pill-warn");
                 mostrarEnProceso(true);
                 _procesoIdActual = null;
-                msgFiltros.innerHTML = "";
+
+                msgFiltros.textContent = "";
                 bloqueChartFiltros.style.display = "none";
             }
         }
 
         // =========================
-        // Nacional
+        // Nacional: usa Tabla?dimension=Nacional para mostrar TODO
         // =========================
         async function cargarNacional() {
             if (!_procesoIdActual) return;
 
+            // total grande
             const resNat = await fetch(`/Resultados/Nacional?procesoId=${encodeURIComponent(_procesoIdActual)}`);
             const nat = await resNat.json();
             if (!nat.ok) return;
 
             const total = Number(nat.totalVotos || 0);
-            setTexto(document.getElementById("totalVotos"), total.toLocaleString("es-EC"));
+            setTexto("totalVotos", total.toLocaleString("es-EC"));
 
-            // mapa GUID -> nombre
+            // mapa GUID->nombre
             const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
             const mapJson = await mapResp.json();
             const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
 
-            // labels/votos (top1/top2 + blanco si existe)
-            const labels = [];
-            const votos = [];
+            // TODO nacional desde Tabla
+            const resNatTabla = await fetch(`/Resultados/Tabla?dimension=Nacional&procesoId=${encodeURIComponent(_procesoIdActual)}`);
+            const natTabla = await resNatTabla.json();
+            if (!natTabla.ok) return;
 
-            function pushItem(item, fallback) {
-                const v = getVotos(item);
-                const op = getOpcion(item);
-                const name = map[op] || op || fallback;
+            const itemsNat = (natTabla.items || []).slice();
+            itemsNat.sort((a, b) => getVotos(b) - getVotos(a));
+
+            const labels = [];
+            const values = [];
+
+            for (const it of itemsNat) {
+                const v = getVotos(it);
+                const op = getOpcion(it);
+                const name = (map && map[op]) ? map[op] : (op || "N/D");
                 if (v > 0) {
                     labels.push(name);
-                    votos.push(v);
+                    values.push(v);
                 }
             }
 
-            pushItem(nat.top1, "Top 1");
-            pushItem(nat.top2, "Top 2");
-
-            const blancoVotos = getVotos(nat.blanco);
-            if (blancoVotos > 0) {
-                labels.push("Blanco");
-                votos.push(blancoVotos);
-            }
-
-            buildChartNacional(labels, votos, total);
+            buildChartNacional(labels, values, "bar");
         }
 
         // =========================
-        // Filtros (Provincia/Canton/Parroquia/Genero) -> solo gráfica
+        // Filtros: gráfica reemplaza tabla
+        // - Agrupa por DimensionValor (x-axis)
+        // - Cada candidato/lista = dataset (legend clickeable)
         // =========================
         async function cargarFiltros() {
             if (!_procesoIdActual) return;
 
             const dim = (dimensionSelect?.value || "Provincia");
-            msgFiltros.innerHTML = "Cargando reporte...";
+            msgFiltros.textContent = "Cargando reporte...";
+            bloqueChartFiltros.style.display = "none";
 
             try {
-                const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
-                const data = await res.json();
-
-                if (!data.ok) {
-                    bloqueChartFiltros.style.display = "none";
-                    msgFiltros.innerHTML = `<div class="alert alert-warning" style="border-radius:14px;">${escapeHtml(data.message || "Sin datos.")}</div>`;
-                    return;
-                }
-
+                // mapa GUID->nombre
                 const mapResp = await fetch(`/Resultados/BoletaMap?procesoId=${encodeURIComponent(_procesoIdActual)}`);
                 const mapJson = await mapResp.json();
                 const map = (mapJson.ok && mapJson.map) ? mapJson.map : {};
 
-                const items = data.items || [];
-                if (!items.length) {
+                // tabla dimension
+                const res = await fetch(`/Resultados/Tabla?dimension=${encodeURIComponent(dim)}&procesoId=${encodeURIComponent(_procesoIdActual)}`);
+                const data = await res.json();
+
+                if (!data.ok) {
+                    msgFiltros.textContent = data.message || "Sin datos.";
                     bloqueChartFiltros.style.display = "none";
-                    msgFiltros.innerHTML = `<div class="small-muted">No hay datos para ${escapeHtml(dim)}.</div>`;
                     return;
                 }
 
-                // X = valores de dimensión (Ambato, Tungurahua, M/F, etc.)
-                const dimSet = new Set(items.map(it => getDimValor(it)));
-                const dimLabels = Array.from(dimSet).filter(x => x).sort((a,b)=>a.localeCompare(b));
+                const items = (data.items || []);
+                const actualizadoUtc = data.actualizadoUtc;
 
-                // Agrupar por opción (candidato/blanco): opción -> (dimValor -> votos)
-                const byOpcion = new Map();
+                // título + actualizado
+                tituloFiltros.textContent = `Distribución - ${dim}`;
+                actualizadoFiltros.textContent = actualizadoUtc
+                    ? String(actualizadoUtc).replace("T", " ").substring(0, 16)
+                    : "--";
 
-                for (const it of items) {
-                    const dimVal = getDimValor(it) || "N/D";
-                    const op = getOpcion(it);
-                    const opName = (map && map[op]) ? map[op] : (op || "N/D");
-                    const v = getVotos(it);
-
-                    if (!byOpcion.has(opName)) byOpcion.set(opName, new Map());
-                    const m = byOpcion.get(opName);
-                    m.set(dimVal, (m.get(dimVal) || 0) + v);
+                if (!items.length) {
+                    msgFiltros.textContent = "Sin datos para esta dimensión.";
+                    bloqueChartFiltros.style.display = "none";
+                    return;
                 }
 
-                // Datasets: cada candidato es una serie (leyenda clickeable)
-                const candidatosDatasets = Array.from(byOpcion.entries())
-                    .map(([label, m]) => {
-                        const arr = dimLabels.map(dv => m.get(dv) || 0);
-                        return { label, data: arr };
-                    })
-                    .sort((a,b) => b.data.reduce((s,x)=>s+x,0) - a.data.reduce((s,x)=>s+x,0));
+                // Dim labels (x): lista de dimensionValor
+                const dimSet = new Map(); // preserve order
+                for (const it of items) {
+                    const dv = String(it.dimensionValor ?? it.DimensionValor ?? "").trim();
+                    if (!dimSet.has(dv)) dimSet.set(dv, true);
+                }
+                const dimLabels = Array.from(dimSet.keys()).filter(x => x);
 
-                // Meta
-                const utc = data.actualizadoUtc ? String(data.actualizadoUtc).replace("T"," ").substring(0,16) : "--";
-                tituloChartFiltros.textContent = `Distribución - ${dim}`;
-                metaChartFiltros.textContent = `Actualizado (UTC): ${utc}`;
+                // Opciones (datasets): cada candidato/lista/blanco
+                const opcSet = new Map();
+                for (const it of items) {
+                    const op = getOpcion(it);
+                    if (!opcSet.has(op)) opcSet.set(op, true);
+                }
+                const opciones = Array.from(opcSet.keys()).filter(x => x);
 
-                // total en esta vista
-                const totalVista = items.reduce((s,it)=> s + getVotos(it), 0);
-                footChartFiltros.textContent = `Total votos contabilizados en esta vista: ${totalVista.toLocaleString("es-EC")}`;
+                // Matriz: opcion -> array aligned a dimLabels
+                const indexDim = new Map(dimLabels.map((d, i) => [d, i]));
+                const matrix = {};
+                for (const op of opciones) matrix[op] = new Array(dimLabels.length).fill(0);
 
-                // Render
-                msgFiltros.innerHTML = "";
+                let totalVista = 0;
+
+                for (const it of items) {
+                    const dv = String(it.dimensionValor ?? it.DimensionValor ?? "").trim();
+                    const op = getOpcion(it);
+                    const v = getVotos(it);
+
+                    const i = indexDim.get(dv);
+                    if (i === undefined) continue;
+
+                    matrix[op][i] = (matrix[op][i] || 0) + v;
+                    totalVista += v;
+                }
+
+                // Datasets: label traducido y data
+                const datasets = opciones.map(op => {
+                    const name = (map && map[op]) ? map[op] : (op || "N/D");
+                    return {
+                        label: name,
+                        data: matrix[op]
+                    };
+                });
+
+                // Render chart
+                buildGroupedChartFiltros(dimLabels, datasets);
+
+                totalVistaFiltros.textContent = String(totalVista);
+                msgFiltros.textContent = "";
                 bloqueChartFiltros.style.display = "";
 
-                _chartFiltros = destroyChart(_chartFiltros);
-                _chartFiltros = buildGroupedChartFiltros(dimLabels, candidatosDatasets);
-
             } catch (err) {
+                msgFiltros.textContent = "Error al cargar reporte.";
                 bloqueChartFiltros.style.display = "none";
-                msgFiltros.innerHTML = `<div class="alert alert-danger" style="border-radius:14px;">Error al cargar reporte.</div>`;
             }
         }
 
-        // listeners
+        // =========================
+        // Eventos
+        // =========================
         if (dimensionSelect) {
             dimensionSelect.addEventListener("change", () => cargarFiltros());
         }
@@ -469,4 +544,5 @@
         document.addEventListener("DOMContentLoaded", () => cargarEstadoYResultados());
     </script>
 }
+
 

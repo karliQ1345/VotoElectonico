@@ -151,6 +151,9 @@
 @section Scripts {
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 
     <script>
         // =========================
@@ -219,66 +222,96 @@
         // =========================
         // Chart Nacional: barras con % arriba
         // =========================
-        function buildChartNacional(labels, values, tipo /* 'bar' | 'pie' */) {
-            const canvas = document.getElementById("chartNacional");
-            if (!canvas) return;
+          function buildChartNacional(labels, values, tipo /* 'bar' | 'pie' */) {
+          const canvas = document.getElementById("chartNacional");
+          if (!canvas) return;
 
-            if (_chartNacional) {
-                _chartNacional.destroy();
-                _chartNacional = null;
-            }
+          if (_chartNacional) {
+            _chartNacional.destroy();
+            _chartNacional = null;
+          }
 
-            const total = values.reduce((a, b) => a + b, 0);
+          _chartNacional = new Chart(canvas, {
+            type: tipo,
+            data: {
+              labels,
+              datasets: [{
+                label: "Votos",
+                data: values
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
 
-            const pluginPct = {
-                id: "pctLabels",
-                afterDatasetsDraw(chart) {
-                    if (chart.config.type !== "bar") return;
+              // más aire arriba para los %
+              layout: { padding: { top: 60 } },
 
-                    const { ctx } = chart;
-                    const meta = chart.getDatasetMeta(0);
+              plugins: {
+                legend: { display: tipo !== "bar" ? true : false },
 
-                    ctx.save();
-                    ctx.font = "12px sans-serif";
-                    ctx.fillStyle = "#333";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "bottom";
+                tooltip: {
+                  enabled: true,
+                  mode: "nearest",
+                  intersect: true,
+                  titleFont: { size: 14 },
+                  bodyFont: { size: 14 }
+                },
 
-                    meta.data.forEach((bar, i) => {
-                        const v = values[i] || 0;
-                        if (v <= 0 || total <= 0) return;
+                // porcentajes visibles y sin cortarse
+                datalabels: {
+                  anchor: (ctx) => {
+                    const data = ctx.dataset.data || [];
+                    const v = data[ctx.dataIndex] || 0;
+                    const max = Math.max(...data);
+                    return v >= max ? "center" : "end";
+                  },
+                  align: (ctx) => {
+                    const data = ctx.dataset.data || [];
+                    const v = data[ctx.dataIndex] || 0;
+                    const max = Math.max(...data);
+                    return v >= max ? "center" : "end";
+                  },
+                  offset: 10,
+                  clamp: true,
+                  clip: false,
 
-                        const pct = Math.round((v * 100) / total) + "%";
-                        ctx.fillText(pct, bar.x, bar.y - 8);
-                    });
+                  formatter: (value, ctx) => {
+                    const data = ctx.dataset.data || [];
+                    const total = data.reduce((a, b) => a + b, 0);
+                    const pct = total > 0 ? Math.round((value * 100) / total) : 0;
+                    return pct + "%";
+                  },
 
-                    ctx.restore();
+                  color: (ctx) => {
+                    const data = ctx.dataset.data || [];
+                    const v = data[ctx.dataIndex] || 0;
+                    const max = Math.max(...data);
+                    return v >= max ? "#fff" : "#111";
+                  },
+                  backgroundColor: (ctx) => {
+                    const data = ctx.dataset.data || [];
+                    const v = data[ctx.dataIndex] || 0;
+                    const max = Math.max(...data);
+                    return v >= max ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.88)";
+                  },
+
+                  borderRadius: 6,
+                  padding: { top: 3, right: 7, bottom: 3, left: 7 },
+                  font: { size: 13, weight: "700" }
                 }
-            };
+              },
 
-            _chartNacional = new Chart(canvas, {
-                type: tipo,
-                data: {
-                    labels,
-                    datasets: [{
-                        label: "Votos",
-                        data: values
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 18 } }, // evita que se corte %
-                    plugins: {
-                        legend: { display: tipo !== "bar" }
-                    },
-                    scales: tipo === "bar" ? {
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    } : {}
-                },
-                plugins: [pluginPct]
-            });
+              scales: tipo === "bar" ? {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+              } : {}
+            },
+
+            // IMPORTANTÍSIMO: aquí sí se activa DataLabels
+            plugins: [ChartDataLabels]
+          });
         }
+
 
         // =========================
         // Chart Filtros: agrupada, leyenda clickeable, tooltip SOLO barra hover

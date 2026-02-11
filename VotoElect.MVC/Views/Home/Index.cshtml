@@ -36,9 +36,9 @@
             <h1 class="display-4">Publicación oficial</h1>
         </div>
 
-        <!-- ✅ Fila: Estado (izq) + Reportes y filtros (der) -->
+        <!-- Fila: Estado (izq) + Reportes y filtros (der) -->
         <div class="row">
-            <!-- IZQUIERDA: Estado + Nacional (en la misma columna, uno debajo del otro) -->
+            <!-- IZQUIERDA: Estado + Nacional (en la misma columna, uno debajo del otro "col-12") -->
             <div class="col-12 mb-4">
                 <!-- Estado -->
                 <div class="p-4 card-soft mb-4">
@@ -83,13 +83,12 @@
                         <div class="p-3" style="border-radius:14px; background: rgba(255,255,255,.55);">
                             <div class="font-weight-bold mb-2">Distribución</div>
 
-                            <!-- ✅ Gráfica Nacional -->
+                            <!-- Gráfica Nacional -->
                             <div style="height:280px;">
                                 <canvas id="chartNacional"></canvas>
                             </div>
 
                             <hr>
-                            <div class="small-muted">*En el sistema real estos datos vendrán de los reportes de cada Junta.</div>
                         </div>
                     </div>
                 </div>
@@ -116,7 +115,7 @@
 
                     <hr />
 
-                    <!-- ✅ Aquí va SOLO la gráfica de filtros (sustituye la tabla) -->
+                    <!-- Aquí va SOLO la gráfica de filtros ( se sustituye la tabla) -->
                     <div id="bloqueChartFiltros" style="display:none;">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
                             <div class="font-weight-bold" id="tituloChartFiltros">Distribución</div>
@@ -213,7 +212,7 @@
         }
 
         // =========================
-        // ✅ Chart Nacional: barras con % arriba
+        // Chart Nacional: barras con % arriba y totales
         // =========================
         function buildChartNacional(labels, votos, total) {
             const canvas = document.getElementById("chartNacional");
@@ -233,7 +232,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    layout: { padding: { top: 28 } }, // ✅ espacio para el % arriba
+                    layout: { padding: { top: 28 } }, // espacio para el % arriba
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: true },
@@ -256,7 +255,7 @@
         }
 
         // =========================
-        // ✅ Chart Filtros: agrupada con leyenda clickeable
+        // Chart Filtros: agrupada con leyenda clickeable
         // =========================
         function buildGroupedChartFiltros(dimLabels, candidatosDatasets) {
             const canvas = document.getElementById("chartFiltros");
@@ -272,7 +271,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true }, // ✅ click para ocultar/mostrar candidato
+                        legend: { display: true }, // click para ocultar/mostrar candidato
                         tooltip: { mode: "index", intersect: false },
                         datalabels: { display: false } // si lo activas aquí se vuelve un caos visual
                     },
